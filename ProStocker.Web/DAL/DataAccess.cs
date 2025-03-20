@@ -738,5 +738,30 @@ namespace ProStocker.Web.DAL
             }
             return sucursales;
         }
+
+        internal Usuario? LeerUsuarioPorId(int id)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "SELECT Id, Nombre, Usuario, Contrasena, Tipo FROM Usuarios WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                var usuario = new Usuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    UsuarioNombre = reader.GetString(2),
+                    Contrasena = reader.GetString(3),
+                    Tipo = reader.GetString(4)
+                };
+                usuario.Sucursales = GetSucursalesPorUsuario(usuario.Id);
+                return usuario;
+            }
+            return null;
+        }
+
     }
 }

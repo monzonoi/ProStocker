@@ -22,7 +22,7 @@ namespace ProStocker.Web.Controllers
         {
             var model = new PosViewModel
             {
-                SucursalId = sucursalId ?? 1, // Valor por defecto para ejemplo
+                SucursalId = sucursalId ?? 1,
                 CajaId = cajaId ?? 1,
                 TurnoActivo = _dataAccess.GetTurnoActivo(cajaId ?? 1)
             };
@@ -31,15 +31,20 @@ namespace ProStocker.Web.Controllers
 
         public IActionResult AbrirTurno(int sucursalId, int cajaId)
         {
-            // Simulación de apertura de turno
             var turno = new TurnoCaja
             {
                 CajaId = cajaId,
                 FechaInicio = DateTime.Now,
                 Estado = "Activo"
             };
-            _dataAccess.AbrirTurno(turno); // Método ficticio, ajusta según tu DAL
-            return RedirectToAction("Index", new { sucursalId, cajaId });
+            _dataAccess.AbrirTurno(turno);
+            var model = new PosViewModel
+            {
+                SucursalId = sucursalId,
+                CajaId = cajaId,
+                TurnoActivo = turno
+            };
+            return View("Index", model); // Devuelve la vista Index actualizada
         }
 
         public IActionResult Index(int sucursalId = 1, int cajaId = 1)

@@ -145,6 +145,16 @@
             border: 1px solid #54BAB9 !important;
             font-family: 'Orbitron', sans-serif;
         }
+
+        .modal-content {
+            background: #16213e;
+            color: #e0e0e0;
+            border: 1px solid #54BAB9;
+        }
+
+        .modal-header, .modal-footer {
+            border-color: #54BAB9;
+        }
         /* Temas */
         .theme-dark {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -202,6 +212,12 @@
                     background: #0056b3;
                     box-shadow: 0 0 15px rgba(0, 123, 255, 0.7);
                 }
+
+            .theme-light .modal-content {
+                background: #ffffff;
+                color: #333;
+                border: 1px solid #ccc;
+            }
     </style>
 </head>
 <body>
@@ -223,7 +239,11 @@
                     <li class="nav-item"><a class="nav-link" onclick="loadContent('/Articulos/Index')"><i class="fas fa-box"></i><span>Artículos</span></a></li>
                     <li class="nav-item"><a class="nav-link" onclick="loadContent('/Usuarios/Index')"><i class="fas fa-users"></i><span>Usuarios</span></a></li>
                 }
-                <li class="nav-item"><form asp-controller="Account" asp-action="Logout" method="post"><button type="submit" class="nav-link btn btn-link"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></button></form></li>
+                <li class="nav-item">
+                    <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="nav-link btn btn-link" onclick="handleLogout(event)"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></button>
+                    </form>
+                </li>
             </ul>
             <div class="mt-4">
                 <h6 class="text-light">Configuración</h6>
@@ -233,7 +253,7 @@
                     <option value="cyber">Tema Cyber</option>
                     <option value="light">Tema Claro</option>
                 </select>
-                <select class="form-select" onchange="changeSidebarPosition(this.value)">
+                <select class="form-select" onchange="changeSidebarPosition(this.value)" id="sidebarPositionSelect">
                     <option value="left">Izquierda</option>
                     <option value="top">Superior</option>
                 </select>
@@ -244,14 +264,34 @@
         <div class="content" id="contentArea">
             @RenderBody()
         </div>
+
+        <!-- Contenedor para Modales -->
+        <div class="modal fade" id="dynamicModal" tabindex="-1" aria-labelledby="dynamicModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dynamicModalLabel"></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="modalBody"></div>
+                    <div class="modal-footer" id="modalFooter"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
-        function loadContent(url) {
-            fetch(url)
+        function loadContent(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                credentials: 'include',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            };
+            if (data) options.body = data;
+            fetch(url, options)
                 .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.text();
                 })
                 .then(html => {
@@ -268,7 +308,61 @@
                         document.body.appendChild(newScript).parentNode.removeChild(newScript);
                     });
                 })
-                .catch(error => console.error('Error loading content:', error));
+                .catch(error => console.error('Error al cargar el contenido:', error));
+        }
+
+        function openModal(url, title, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                credentials: 'include',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            };
+            if (data) options.body = data;
+            fetch(url, options)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('dynamicModalLabel').textContent = title;
+                    document.getElementById('modalBody').innerHTML = html;
+                    document.getElementById('modalFooter').innerHTML = `
+                        <button type="button" class="btn btn-neon" onclick="submitModalForm()">Guardar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    `;
+                    const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
+                    modal.show();
+                })
+                .catch(error => console.error('Error al cargar el modal:', error));
+        }
+
+        function submitModalForm() {
+            const form = document.getElementById('modalBody').querySelector('form');
+            if (form) {
+                const formData = new FormData(form);
+                const url = form.action;
+                const method = form.method || 'POST';
+                fetch(url, {
+                    method: method,
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.text();
+                    })
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const content = doc.querySelector('.content');
+                        if (content) {
+                            document.getElementById('contentArea').innerHTML = content.innerHTML;
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                        }
+                    })
+                    .catch(error => console.error('Error al enviar el formulario:', error));
+            }
         }
 
         function toggleSidebar() {
@@ -293,6 +387,21 @@
             container.style.flexDirection = position === 'top' ? 'column' : 'row';
             localStorage.setItem('sidebarPosition', position);
             if (sidebar.classList.contains('collapsed')) toggleSidebar();
+            updateSidebarPositionSelect(position);
+        }
+
+        function applySidebarPosition(position) {
+            const sidebar = document.getElementById('sidebar');
+            const container = document.getElementById('dashboardContainer');
+            sidebar.classList.remove('left', 'top');
+            sidebar.classList.add(position);
+            container.style.flexDirection = position === 'top' ? 'column' : 'row';
+            updateSidebarPositionSelect(position);
+        }
+
+        function updateSidebarPositionSelect(position) {
+            const select = document.getElementById('sidebarPositionSelect');
+            select.value = position;
         }
 
         function changeTheme(theme) {
@@ -307,14 +416,6 @@
             const body = document.body;
             body.classList.remove('theme-dark', 'theme-neon', 'theme-cyber', 'theme-light');
             body.classList.add(`theme-${theme}`);
-        }
-
-        function applySidebarPosition(position) {
-            const sidebar = document.getElementById('sidebar');
-            const container = document.getElementById('dashboardContainer');
-            sidebar.classList.remove('left', 'top');
-            sidebar.classList.add(position);
-            container.style.flexDirection = position === 'top' ? 'column' : 'row';
         }
 
         function adjustChartColors(theme) {
@@ -333,9 +434,19 @@
             }
         }
 
+        function handleLogout(event) {
+            event.preventDefault();
+            const form = document.getElementById('logoutForm');
+            const formData = new FormData(form);
+            loadContent('/Account/Logout', 'POST', formData);
+            setTimeout(() => window.location.href = '/Account/Login', 500);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            applyTheme(localStorage.getItem('theme') || 'dark');
-            applySidebarPosition(localStorage.getItem('sidebarPosition') || 'left');
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedPosition = localStorage.getItem('sidebarPosition') || 'left';
+            applyTheme(savedTheme);
+            applySidebarPosition(savedPosition);
         });
     </script>
     @RenderSection("Scripts", required: false)
