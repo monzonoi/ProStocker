@@ -1,0 +1,10 @@
+﻿@model ProStocker.Web.Models.TurnoCaja
+<h2>Abrir Turno</h2>
+<form asp-action="AbrirTurno" method="post">
+    <input type="hidden" asp-for="CajaId" />
+    <div class="form-group">
+        <label>Monto Inicial</label>
+        <input asp-for="MontoInicial" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Abrir</button>
+</form>

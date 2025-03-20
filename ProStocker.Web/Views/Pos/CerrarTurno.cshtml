@@ -1,0 +1,9 @@
+﻿<h2>Cerrar Turno</h2>
+<form asp-action="CerrarTurno" method="post">
+    <input type="hidden" name="turnoId" value="@ViewData["TurnoId"]" />
+    <div class="form-group">
+        <label>Monto Real</label>
+        <input name="montoReal" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Cerrar</button>
+</form>
