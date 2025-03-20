@@ -2,10 +2,13 @@
 using ProStocker.Web.DAL;
 using ProStocker.Web.Models;
 using System.Text.Json; // Necesitamos este espacio de nombres
-using Microsoft.AspNetCore.Http; // Para ISession
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims; // Para ISession
 
 namespace ProStocker.Web.Controllers
 {
+    [Authorize]
     public class PosController : Controller
     {
         private readonly DataAccess _dataAccess;
@@ -37,7 +40,7 @@ namespace ProStocker.Web.Controllers
         public IActionResult AbrirTurno(TurnoCaja turno)
         {
             turno.FechaInicio = DateTime.Now;
-            turno.UsuarioId = 1; // Simulamos usuario logueado
+            turno.UsuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value); // Usuario logueado
             turno.Estado = "Abierto";
             _dataAccess.AbrirTurno(turno);
             return RedirectToAction("Index", new { sucursalId = turno.CajaId == 1 ? 1 : 2, cajaId = turno.CajaId });
@@ -68,7 +71,7 @@ namespace ProStocker.Web.Controllers
                 TurnoId = turnoId
             };
             venta.Fecha = DateTime.Now;
-            venta.VendedorId = 1; // Simulamos usuario
+            venta.VendedorId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value); // Usuario logueado
             venta.TotalCosto = venta.Items.Sum(i => i.Cantidad * _dataAccess.GetArticuloPorCodigo(i.ArticuloId.ToString()).Costo);
             venta.TotalVenta = venta.Items.Sum(i => i.Subtotal);
 

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ProStocker.Web.DAL;
 using ProStocker.Web.Models;
 
 namespace ProStocker.Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class ArticulosController : Controller
     {
         private readonly DataAccess _dataAccess;

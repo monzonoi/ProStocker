@@ -1,4 +1,5 @@
 using System.Data.SQLite;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using ProStocker.Web.DAL;
 
@@ -15,6 +16,15 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
+// Configurar autenticación con cookies
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+    });
 
 // Registrar DAL
 builder.Services.AddSingleton<DataAccess>();
@@ -165,7 +175,7 @@ if (!File.Exists(dbPath))
         INSERT INTO Cajas (SucursalId, Nombre, Estado) VALUES (2, 'Caja 1', 'Activa');
         INSERT INTO Cajas (SucursalId, Nombre, Estado) VALUES (2, 'Caja 2', 'Activa');
         INSERT INTO Usuarios (Nombre, Usuario, Contrasena, Tipo) 
-        VALUES ('Admin', 'admin', '$2a$11$z5Qz5Y5z5Qz5Y5z5Qz5Y5u5Qz5Y5z5Qz5Y5z5Qz5Y5z5Qz5Y5z5Q', 'Admin'); -- Contraseña: 'admin123'
+        VALUES ('Admin', 'admin', '$2a$11$hFiRf4p9TK5NG/QA4NHomuWfziydZJ8zH2CSRgooFaUlfCodlfYuy', 'Admin'); -- Contraseña: 'admin123'
         INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) VALUES (1, 1);
         INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) VALUES (1, 2);
         INSERT INTO Articulos (Codigo, Descripcion, Precio1, Costo) 
@@ -174,6 +184,9 @@ if (!File.Exists(dbPath))
         VALUES (1, 1, 50, 10);
         INSERT INTO StockPorSucursal (SucursalId, ArticuloId, Stock, StockMinimo) 
         VALUES (2, 1, 30, 10);
+
+        INSERT INTO Usuarios (Nombre, Usuario, Contrasena, Tipo) VALUES ('Vendedor1', 'vendedor1', '$2a$11$hFiRf4p9TK5NG/QA4NHomuWfziydZJ8zH2CSRgooFaUlfCodlfYuy', 'Vendedor'); 
+        INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) VALUES (2, 1);
     ";
 
     using var cmd = new SQLiteCommand(sqlScript, conn);
@@ -191,8 +204,9 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession();
+app.UseAuthentication(); // Añadir autenticación
 app.UseAuthorization();
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
