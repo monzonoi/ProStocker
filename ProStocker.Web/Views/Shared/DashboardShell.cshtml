@@ -247,6 +247,97 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        function loadContent(url) {
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.content');
+                    if (content) {
+                        document.getElementById('contentArea').innerHTML = content.innerHTML;
+                    }
+                    const scripts = doc.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        newScript.text = script.textContent || script.innerHTML;
+                        document.body.appendChild(newScript).parentNode.removeChild(newScript);
+                    });
+                })
+                .catch(error => console.error('Error loading content:', error));
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            const brandText = sidebar.querySelector('.brand span');
+            const brandIcon = sidebar.querySelector('.brand i');
+            if (sidebar.classList.contains('collapsed')) {
+                brandText.style.display = 'none';
+                brandIcon.style.display = 'inline';
+            } else {
+                brandText.style.display = 'inline';
+                brandIcon.style.display = 'none';
+            }
+        }
+
+        function changeSidebarPosition(position) {
+            const sidebar = document.getElementById('sidebar');
+            const container = document.getElementById('dashboardContainer');
+            sidebar.classList.remove('left', 'top');
+            sidebar.classList.add(position);
+            container.style.flexDirection = position === 'top' ? 'column' : 'row';
+            localStorage.setItem('sidebarPosition', position);
+            if (sidebar.classList.contains('collapsed')) toggleSidebar();
+        }
+
+        function changeTheme(theme) {
+            const body = document.body;
+            body.classList.remove('theme-dark', 'theme-neon', 'theme-cyber', 'theme-light');
+            body.classList.add(`theme-${theme}`);
+            localStorage.setItem('theme', theme);
+            adjustChartColors(theme);
+        }
+
+        function applyTheme(theme) {
+            const body = document.body;
+            body.classList.remove('theme-dark', 'theme-neon', 'theme-cyber', 'theme-light');
+            body.classList.add(`theme-${theme}`);
+        }
+
+        function applySidebarPosition(position) {
+            const sidebar = document.getElementById('sidebar');
+            const container = document.getElementById('dashboardContainer');
+            sidebar.classList.remove('left', 'top');
+            sidebar.classList.add(position);
+            container.style.flexDirection = position === 'top' ? 'column' : 'row';
+        }
+
+        function adjustChartColors(theme) {
+            if (window.ventasChart) {
+                const colors = theme === 'light' ?
+                    { text: '#333', bgVentas: 'rgba(0, 123, 255, 0.7)', borderVentas: '#007bff', bgGanancia: 'rgba(40, 167, 69, 0.7)', borderGanancia: '#28a745' } :
+                    { text: '#e0e0e0', bgVentas: 'rgba(84, 186, 185, 0.7)', borderVentas: '#54BAB9', bgGanancia: 'rgba(233, 69, 96, 0.7)', borderGanancia: '#e94560' };
+                ventasChart.options.scales.y.ticks.color = colors.text;
+                ventasChart.options.scales.x.ticks.color = colors.text;
+                ventasChart.options.plugins.legend.labels.color = colors.text;
+                ventasChart.data.datasets[0].backgroundColor = colors.bgVentas;
+                ventasChart.data.datasets[0].borderColor = colors.borderVentas;
+                ventasChart.data.datasets[1].backgroundColor = colors.bgGanancia;
+                ventasChart.data.datasets[1].borderColor = colors.borderGanancia;
+                ventasChart.update();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTheme(localStorage.getItem('theme') || 'dark');
+            applySidebarPosition(localStorage.getItem('sidebarPosition') || 'left');
+        });
+    </script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>
