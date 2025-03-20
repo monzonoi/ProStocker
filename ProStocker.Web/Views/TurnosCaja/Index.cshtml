@@ -1,4 +1,10 @@
 ﻿@model List<ProStocker.Web.Models.Articulo>
+
+@{
+    ViewData["Title"] = "Articulo";
+    Layout = "~/Views/Shared/DashboardShell.cshtml";
+}
+
 <h2>Artículos</h2>
 <a asp-action="Create" class="btn btn-primary">Nuevo Artículo</a>
 <table class="table">

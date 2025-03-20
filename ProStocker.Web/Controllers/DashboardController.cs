@@ -17,6 +17,11 @@ namespace ProStocker.Web.Controllers
 
         public IActionResult Index(int? sucursalId, int? cajaId, DateTime? fechaInicio, DateTime? fechaFin)
         {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
             var sucursalesPermitidas = User.Claims.Where(c => c.Type == "Sucursal").Select(c => int.Parse(c.Value)).ToList();
             var model = _dataAccess.GetDashboardData(sucursalId, fechaInicio, fechaFin);
 

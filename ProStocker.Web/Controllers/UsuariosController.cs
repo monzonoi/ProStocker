@@ -17,8 +17,17 @@ namespace ProStocker.Web.Controllers
 
         public IActionResult Index()
         {
-            return View(_dataAccess.LeerUsuarios());
+            var model = new UsuariosViewModel
+            {
+                Usuarios = _dataAccess.LeerUsuarios() // Método ficticio, ajusta según tu DAL
+            };
+            return View(model);
         }
+
+        //public IActionResult Index()
+        //{
+        //    return View(_dataAccess.LeerUsuarios());
+        //}
 
         public IActionResult Create()
         {

@@ -1,31 +1,27 @@
-﻿@model ProStocker.Web.Models.Venta
+﻿@model ProStocker.Web.Models.PosViewModel
 @{
-    ViewData["Title"] = "Punto de Venta";
+    ViewData["Title"] = "POS";
+    Layout = "~/Views/Shared/DashboardShell.cshtml";
 }
-<div class="row">
-    <div class="col-12">
-        <h2>Punto de Venta</h2>
-        <p>Sucursal: @ViewBag.SucursalId | Caja: @ViewBag.CajaId | Turno: @ViewBag.TurnoId</p>
-    </div>
-</div>
-<div class="row">
-    <div class="col-4">
-        <input id="codigo" class="form-control" placeholder="Código de barras" autofocus />
-    </div>
-    <div class="col-8">
-        <table class="table" id="carrito">
-            <thead>
-                <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <h3>Total: <span id="total">0</span></h3>
-        <div>
-            <input id="efectivo" class="form-control" placeholder="Efectivo" />
-            <input id="mercadoPago" class="form-control" placeholder="Mercado Pago" />
-            <button id="finalizar" class="btn btn-success">Finalizar (F10)</button>
-            <a asp-action="CerrarTurno" asp-route-turnoId="@ViewBag.TurnoId" class="btn btn-danger">Cerrar Turno</a>
-        </div>
+
+<div class="content">
+    <h1 class="mb-4" style="color: #54BAB9; text-shadow: 0 0 10px rgba(84, 186, 185, 0.7); font-size: 2rem;">Punto de Venta</h1>
+    <div class="card p-3 shadow-lg">
+        @if (Model.TurnoActivo != null)
+        {
+            <h5 class="text-light"><i class="fas fa-cash-register"></i> Turno Activo</h5>
+            <p class="text-success">Inicio: @Model.TurnoActivo.FechaInicio.ToString("HH:mm dd/MM/yyyy")</p>
+            <p>Estado: @Model.TurnoActivo.Estado</p>
+        }
+        else
+        {
+            <h5 class="text-light"><i class="fas fa-cash-register"></i> Sin Turno Activo</h5>
+            <p class="text-warning">No hay turno abierto para esta caja.</p>
+            <a onclick="loadContent('/Pos/AbrirTurno?sucursalId=@Model.SucursalId&cajaId=@Model.CajaId')"
+               class="btn btn-neon mt-2" style="cursor: pointer;">
+                <i class="fas fa-play"></i> Abrir Turno
+            </a>
+        }
     </div>
 </div>
 

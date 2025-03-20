@@ -1,4 +1,9 @@
-﻿<!DOCTYPE html>
+﻿@model dynamic
+@{
+    ViewData["Title"] = "ProStocker Dashboard";
+}
+
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
@@ -200,7 +205,47 @@
     </style>
 </head>
 <body>
-    @RenderBody()
+    <div class="dashboard-container" id="dashboardContainer">
+        <!-- Menú -->
+        <nav class="sidebar left" id="sidebar">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="brand">
+                    <span class="text-neon" style="color: #e94560; font-size: 1.5rem;">ProStocker</span>
+                    <i class="fas fa-rocket text-neon" style="color: #e94560; font-size: 1.5rem; display: none;"></i>
+                </div>
+                <button class="btn btn-link text-light" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            </div>
+            <ul class="nav">
+                <li class="nav-item"><a class="nav-link" onclick="loadContent('/Dashboard/Index')"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+                <li class="nav-item"><a class="nav-link" onclick="loadContent('/Pos/Index')"><i class="fas fa-cash-register"></i><span>POS</span></a></li>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li class="nav-item"><a class="nav-link" onclick="loadContent('/Articulos/Index')"><i class="fas fa-box"></i><span>Artículos</span></a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="loadContent('/Usuarios/Index')"><i class="fas fa-users"></i><span>Usuarios</span></a></li>
+                }
+                <li class="nav-item"><form asp-controller="Account" asp-action="Logout" method="post"><button type="submit" class="nav-link btn btn-link"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></button></form></li>
+            </ul>
+            <div class="mt-4">
+                <h6 class="text-light">Configuración</h6>
+                <select class="form-select mb-2" onchange="changeTheme(this.value)">
+                    <option value="dark">Tema Oscuro</option>
+                    <option value="neon">Tema Neón</option>
+                    <option value="cyber">Tema Cyber</option>
+                    <option value="light">Tema Claro</option>
+                </select>
+                <select class="form-select" onchange="changeSidebarPosition(this.value)">
+                    <option value="left">Izquierda</option>
+                    <option value="top">Superior</option>
+                </select>
+            </div>
+        </nav>
+
+        <!-- Contenido Dinámico -->
+        <div class="content" id="contentArea">
+            @RenderBody()
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     @RenderSection("Scripts", required: false)
 </body>

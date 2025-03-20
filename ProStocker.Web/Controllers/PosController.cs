@@ -18,6 +18,30 @@ namespace ProStocker.Web.Controllers
             _dataAccess = dataAccess;
         }
 
+        public IActionResult Index(int? sucursalId, int? cajaId)
+        {
+            var model = new PosViewModel
+            {
+                SucursalId = sucursalId ?? 1, // Valor por defecto para ejemplo
+                CajaId = cajaId ?? 1,
+                TurnoActivo = _dataAccess.GetTurnoActivo(cajaId ?? 1)
+            };
+            return View(model);
+        }
+
+        public IActionResult AbrirTurno(int sucursalId, int cajaId)
+        {
+            // Simulación de apertura de turno
+            var turno = new TurnoCaja
+            {
+                CajaId = cajaId,
+                FechaInicio = DateTime.Now,
+                Estado = "Activo"
+            };
+            _dataAccess.AbrirTurno(turno); // Método ficticio, ajusta según tu DAL
+            return RedirectToAction("Index", new { sucursalId, cajaId });
+        }
+
         public IActionResult Index(int sucursalId = 1, int cajaId = 1)
         {
             var turno = _dataAccess.GetTurnoActivo(cajaId);
@@ -31,10 +55,10 @@ namespace ProStocker.Web.Controllers
             return View(new Venta { SucursalId = sucursalId, CajaId = cajaId, TurnoId = turno.Id });
         }
 
-        public IActionResult AbrirTurno(int sucursalId, int cajaId)
-        {
-            return View(new TurnoCaja { CajaId = cajaId });
-        }
+        //public IActionResult AbrirTurno(int sucursalId, int cajaId)
+        //{
+        //    return View(new TurnoCaja { CajaId = cajaId });
+        //}
 
         [HttpPost]
         public IActionResult AbrirTurno(TurnoCaja turno)

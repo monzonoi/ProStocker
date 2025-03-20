@@ -1,4 +1,8 @@
-﻿@model List<ProStocker.Web.Models.Usuario>
+﻿@model ProStocker.Web.Models.UsuariosViewModel
+@{
+    ViewData["Title"] = "Usuarios";
+    Layout = "~/Views/Shared/DashboardShell.cshtml";
+}
 <h2>Usuarios</h2>
 <a asp-action="Create" class="btn btn-primary">Nuevo Usuario</a>
 <table class="table">
@@ -12,7 +16,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @foreach (var item in Model.Usuarios)
         {
             <tr>
                 <td>@item.Nombre</td>
