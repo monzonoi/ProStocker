@@ -21,9 +21,16 @@
     <div class="mb-3">
         <label class="form-label">Sucursales</label>
         <select name="Sucursales" class="form-select" multiple>
-            @foreach (var sucursal in ViewBag.Sucursales ?? new List<Sucursal>())
+            @if (ViewBag.Sucursales != null)
             {
-                <option value="@sucursal.Id">@sucursal.Nombre</option>
+                foreach (var sucursal in ViewBag.Sucursales as List<Sucursal>)
+                {
+                    <option value="@sucursal.Id">@sucursal.Nombre</option>
+                }
+            }
+            else
+            {
+                <option value="" disabled>No hay sucursales disponibles</option>
             }
         </select>
     </div>

@@ -32,6 +32,7 @@ namespace ProStocker.Web.Controllers
         [HttpGet]
         public IActionResult Create()
         {
+            ViewBag.Sucursales = _dataAccess.LeerSucursales();
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
                 return PartialView("Create");
@@ -42,22 +43,32 @@ namespace ProStocker.Web.Controllers
         [HttpPost]
         public IActionResult Create(Usuario usuario, int[] Sucursales)
         {
-            if (ModelState.IsValid)
+            try
             {
-                usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
-                _dataAccess.CrearUsuario(usuario);
-                var model = new UsuariosViewModel
+                if (ModelState.IsValid)
                 {
-                    Usuarios = _dataAccess.LeerUsuarios()
-                };
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
+                    usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+                    _dataAccess.CrearUsuario(usuario);
+                    var model = new UsuariosViewModel
+                    {
+                        Usuarios = _dataAccess.LeerUsuarios()
+                    };
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                        return View("Index", model);
+                    }
                     return View("Index", model);
                 }
-                return View("Index", model);
+                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                return PartialView("Create", usuario);
             }
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
-            return PartialView("Create", usuario);
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error al crear usuario: {ex.Message}");
+                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                return PartialView("Create", usuario);
+            }
         }
 
         [HttpGet]
@@ -76,22 +87,32 @@ namespace ProStocker.Web.Controllers
         [HttpPost]
         public IActionResult Edit(Usuario usuario, int[] Sucursales)
         {
-            if (ModelState.IsValid)
+            try
             {
-                usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
-                _dataAccess.ActualizarUsuario(usuario);
-                var model = new UsuariosViewModel
+                if (ModelState.IsValid)
                 {
-                    Usuarios = _dataAccess.LeerUsuarios()
-                };
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
+                    usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+                    _dataAccess.ActualizarUsuario(usuario);
+                    var model = new UsuariosViewModel
+                    {
+                        Usuarios = _dataAccess.LeerUsuarios()
+                    };
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                        return View("Index", model);
+                    }
                     return View("Index", model);
                 }
-                return View("Index", model);
+                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                return PartialView("Edit", usuario);
             }
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
-            return PartialView("Edit", usuario);
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error al actualizar usuario: {ex.Message}");
+                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                return PartialView("Edit", usuario);
+            }
         }
 
         [HttpPost]
@@ -113,19 +134,31 @@ namespace ProStocker.Web.Controllers
             return PartialView("Edit", usuario);
         }
 
+       
+
         [HttpPost]
         public IActionResult Delete(int id)
         {
-            _dataAccess.EliminarUsuario(id);
-            var model = new UsuariosViewModel
+            try
             {
-                Usuarios = _dataAccess.LeerUsuarios()
-            };
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
+                _dataAccess.EliminarUsuario(id);
+                var model = new UsuariosViewModel
+                {
+                    Usuarios = _dataAccess.LeerUsuarios()
+                };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                    return View("Index", model);
+                }
                 return View("Index", model);
             }
-            return View("Index", model);
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error al eliminar usuario: {ex.Message}");
+                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+                return View("Index");
+            }
         }
 
     }
