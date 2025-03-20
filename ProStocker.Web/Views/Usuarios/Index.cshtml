@@ -20,8 +20,9 @@
                     <tr>
                         <th>ID</th>
                         <th>Nombre</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
+                        <th>Usuario</th>
+                        <th>Tipo</th>
+                        <th>Sucursales</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -31,11 +32,27 @@
                         <tr>
                             <td>@usuario.Id</td>
                             <td>@usuario.Nombre</td>
+                            <td>@usuario.UsuarioNombre</td>
                             <td>@usuario.Tipo</td>
-                            <td>@(usuario.Activo ? "Activo" : "Inactivo")</td>
+                            <td>
+                                @{
+                                    var sucursales = ViewBag.Sucursales as List<Sucursal>;
+                                    if (sucursales != null && usuario.Sucursales.Any())
+                                    {
+                                        @string.Join(", ", usuario.Sucursales.Select(s => sucursales.FirstOrDefault(suc => suc.Id == s)?.Nombre ?? s.ToString()))
+                                    }
+                                    else
+                                    {
+                                        @:Sin sucursales
+                                    }
+                                }
+                            </td>
                             <td>
                                 <button class="btn btn-neon btn-sm" onclick="openModal('/Usuarios/Edit/@usuario.Id', 'Editar Usuario')">
                                     <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="confirmDelete('/Usuarios/Delete/@usuario.Id', @usuario.Id)">
+                                    <i class="fas fa-trash"></i> Eliminar
                                 </button>
                             </td>
                         </tr>
@@ -45,3 +62,40 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(url, id) {
+            document.getElementById('dynamicModalLabel').textContent = 'Confirmar Eliminación';
+            document.getElementById('modalBody').innerHTML = `<p>¿Estás seguro de que quieres eliminar al usuario con ID ${id}?</p>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button type="button" class="btn btn-neon" onclick="deleteUser('${url}')">Eliminar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            `;
+            const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
+            modal.show();
+        }
+
+        function deleteUser(url) {
+            fetch(url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text();
+                })
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.content');
+                    if (content) {
+                        document.getElementById('contentArea').innerHTML = content.innerHTML;
+                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                    }
+                })
+                .catch(error => console.error('Error al eliminar el usuario:', error));
+        }
+    </script>
+}

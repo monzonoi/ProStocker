@@ -21,6 +21,7 @@ namespace ProStocker.Web.Controllers
             {
                 Usuarios = _dataAccess.LeerUsuarios()
             };
+            ViewBag.Sucursales = _dataAccess.LeerSucursales(); // Añadimos las sucursales al ViewBag
             return View(model);
         }
 
@@ -28,42 +29,34 @@ namespace ProStocker.Web.Controllers
         //{
         //    return View(_dataAccess.LeerUsuarios());
         //}
-
         [HttpGet]
         public IActionResult Create()
         {
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return PartialView("Create"); // Vista parcial para el modal
+                return PartialView("Create");
             }
             return View();
         }
 
         [HttpPost]
-        public IActionResult Create(Usuario usuario, int[] sucursales)
+        public IActionResult Create(Usuario usuario, int[] Sucursales)
         {
             if (ModelState.IsValid)
             {
-                usuario.Sucursales = sucursales.ToList();
-                _dataAccess.CrearUsuario(usuario);
-                return RedirectToAction("Index");
-            }
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
-            return View(usuario);
-        }
-
-        [HttpPost]
-        public IActionResult Create(Usuario usuario)
-        {
-            if (ModelState.IsValid)
-            {
+                usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
                 _dataAccess.CrearUsuario(usuario);
                 var model = new UsuariosViewModel
                 {
                     Usuarios = _dataAccess.LeerUsuarios()
                 };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return View("Index", model);
+                }
                 return View("Index", model);
             }
+            ViewBag.Sucursales = _dataAccess.LeerSucursales();
             return PartialView("Create", usuario);
         }
 
@@ -72,11 +65,33 @@ namespace ProStocker.Web.Controllers
         {
             var usuario = _dataAccess.LeerUsuarioPorId(id);
             if (usuario == null) return NotFound();
+            ViewBag.Sucursales = _dataAccess.LeerSucursales();
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return PartialView("Edit", usuario); // Vista parcial para el modal
+                return PartialView("Edit", usuario);
             }
             return View(usuario);
+        }
+
+        [HttpPost]
+        public IActionResult Edit(Usuario usuario, int[] Sucursales)
+        {
+            if (ModelState.IsValid)
+            {
+                usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+                _dataAccess.ActualizarUsuario(usuario);
+                var model = new UsuariosViewModel
+                {
+                    Usuarios = _dataAccess.LeerUsuarios()
+                };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return View("Index", model);
+                }
+                return View("Index", model);
+            }
+            ViewBag.Sucursales = _dataAccess.LeerSucursales();
+            return PartialView("Edit", usuario);
         }
 
         [HttpPost]
@@ -89,44 +104,29 @@ namespace ProStocker.Web.Controllers
                 {
                     Usuarios = _dataAccess.LeerUsuarios()
                 };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return View("Index", model); // Devuelve la vista completa para AJAX
+                }
                 return View("Index", model);
             }
             return PartialView("Edit", usuario);
         }
 
-        //public IActionResult Edit(int id)
-        //{
-        //    var usuario = _dataAccess.LeerUsuarios().FirstOrDefault(u => u.Id == id);
-        //    if (usuario == null) return NotFound();
-        //    ViewBag.Sucursales = _dataAccess.LeerSucursales();
-        //    return View(usuario);
-        //}
-
         [HttpPost]
-        public IActionResult Edit(Usuario usuario, int[] sucursales)
-        {
-            if (ModelState.IsValid)
-            {
-                usuario.Sucursales = sucursales.ToList();
-                _dataAccess.ActualizarUsuario(usuario);
-                return RedirectToAction("Index");
-            }
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
-            return View(usuario);
-        }
-
         public IActionResult Delete(int id)
         {
-            var usuario = _dataAccess.LeerUsuarios().FirstOrDefault(u => u.Id == id);
-            if (usuario == null) return NotFound();
-            return View(usuario);
+            _dataAccess.EliminarUsuario(id);
+            var model = new UsuariosViewModel
+            {
+                Usuarios = _dataAccess.LeerUsuarios()
+            };
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return View("Index", model);
+            }
+            return View("Index", model);
         }
 
-        [HttpPost, ActionName("Delete")]
-        public IActionResult DeleteConfirmed(int id)
-        {
-            _dataAccess.EliminarUsuario(id);
-            return RedirectToAction("Index");
-        }
     }
 }

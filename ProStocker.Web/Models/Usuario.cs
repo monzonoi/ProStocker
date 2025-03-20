@@ -5,10 +5,9 @@ namespace ProStocker.Web.Models
     {
         public int Id { get; set; }
         public string Nombre { get; set; }
-        public string UsuarioNombre { get; set; } // Renombramos "Usuario" a "UsuarioNombre" para evitar confusión
-        public string Contrasena { get; set; } // Hash con BCrypt
-        public string Tipo { get; set; } // "Admin" o "Vendedor"
-        public bool Activo { get; set; } = true;
+        public string UsuarioNombre { get; set; } // Campo "Usuario" en la tabla
+        public string Contrasena { get; set; }   // Campo "Contrasena" en la tabla
+        public string Tipo { get; set; }         // "Admin" o "Usuario"
         public List<int> Sucursales { get; set; } = new List<int>(); // Sucursales asignadas
     }
 
