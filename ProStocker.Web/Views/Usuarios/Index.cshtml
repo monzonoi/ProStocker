@@ -1,0 +1,31 @@
+﻿@model List<ProStocker.Web.Models.Usuario>
+<h2>Usuarios</h2>
+<a asp-action="Create" class="btn btn-primary">Nuevo Usuario</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th>Sucursales</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Nombre</td>
+                <td>@item.UsuarioNombre</td>
+                <td>@item.Tipo</td>
+                <td>@string.Join(", ", _dataAccess.LeerSucursales().Where(s => item.Sucursales.Contains(s.Id)).Select(s => s.Nombre))</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning">Editar</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@inject ProStocker.Web.DAL.DataAccess _dataAccess

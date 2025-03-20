@@ -1,0 +1,38 @@
+﻿@model ProStocker.Web.Models.Usuario
+<h2>Editar Usuario</h2>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label>Nombre</label>
+        <input asp-for="Nombre" class="form-control" />
+        <span asp-validation-for="Nombre" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label>Usuario</label>
+        <input asp-for="UsuarioNombre" class="form-control" />
+        <span asp-validation-for="UsuarioNombre" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label>Contraseña (dejar en blanco para no cambiar)</label>
+        <input asp-for="Contrasena" type="password" class="form-control" />
+        <span asp-validation-for="Contrasena" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label>Tipo</label>
+        <select asp-for="Tipo" class="form-control">
+            <option value="Admin">Admin</option>
+            <option value="Vendedor">Vendedor</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Sucursales</label>
+        <select multiple name="sucursales" class="form-control">
+            @foreach (var sucursal in ViewBag.Sucursales)
+            {
+                <option value="@sucursal.Id" selected="@(Model.Sucursales.Contains(sucursal.Id))">@sucursal.Nombre</option>
+            }
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

@@ -187,6 +187,9 @@ if (!File.Exists(dbPath))
 
         INSERT INTO Usuarios (Nombre, Usuario, Contrasena, Tipo) VALUES ('Vendedor1', 'vendedor1', '$2a$11$hFiRf4p9TK5NG/QA4NHomuWfziydZJ8zH2CSRgooFaUlfCodlfYuy', 'Vendedor'); 
         INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) VALUES (2, 1);
+
+
+ 
     ";
 
     using var cmd = new SQLiteCommand(sqlScript, conn);

@@ -540,6 +540,149 @@ namespace ProStocker.Web.DAL
             return null;
         }
 
+
+        public void CrearUsuario(Usuario usuario)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            using var transaction = conn.BeginTransaction();
+            try
+            {
+                // Insertar usuario
+                var cmd = new SQLiteCommand(
+                    "INSERT INTO Usuarios (Nombre, Usuario, Contrasena, Tipo) " +
+                    "VALUES (@Nombre, @Usuario, @Contrasena, @Tipo); " +
+                    "SELECT last_insert_rowid();", conn);
+                cmd.Parameters.AddWithValue("@Nombre", usuario.Nombre);
+                cmd.Parameters.AddWithValue("@Usuario", usuario.UsuarioNombre);
+                cmd.Parameters.AddWithValue("@Contrasena", BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
+                cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
+                int usuarioId = Convert.ToInt32(cmd.ExecuteScalar());
+
+                // Asignar sucursales
+                foreach (var sucursalId in usuario.Sucursales)
+                {
+                    cmd = new SQLiteCommand(
+                        "INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) " +
+                        "VALUES (@UsuarioId, @SucursalId)", conn);
+                    cmd.Parameters.AddWithValue("@UsuarioId", usuarioId);
+                    cmd.Parameters.AddWithValue("@SucursalId", sucursalId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public List<Usuario> LeerUsuarios()
+        {
+            var usuarios = new List<Usuario>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "SELECT Id, Nombre, Usuario, Tipo FROM Usuarios", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var usuario = new Usuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    UsuarioNombre = reader.GetString(2),
+                    Tipo = reader.GetString(3)
+                };
+                usuario.Sucursales = GetSucursalesPorUsuario(usuario.Id);
+                usuarios.Add(usuario);
+            }
+            return usuarios;
+        }
+
+        public void ActualizarUsuario(Usuario usuario)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            using var transaction = conn.BeginTransaction();
+            try
+            {
+                // Actualizar datos del usuario
+                var cmd = new SQLiteCommand(
+                    "UPDATE Usuarios SET Nombre = @Nombre, Usuario = @Usuario, " +
+                    "Contrasena = @Contrasena, Tipo = @Tipo WHERE Id = @Id", conn);
+                cmd.Parameters.AddWithValue("@Id", usuario.Id);
+                cmd.Parameters.AddWithValue("@Nombre", usuario.Nombre);
+                cmd.Parameters.AddWithValue("@Usuario", usuario.UsuarioNombre);
+                cmd.Parameters.AddWithValue("@Contrasena", string.IsNullOrEmpty(usuario.Contrasena)
+                    ? GetHashActual(usuario.Id) // No cambiar contraseña si está vacía
+                    : BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
+                cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
+                cmd.ExecuteNonQuery();
+
+                // Eliminar sucursales existentes
+                cmd = new SQLiteCommand("DELETE FROM UsuarioSucursal WHERE UsuarioId = @UsuarioId", conn);
+                cmd.Parameters.AddWithValue("@UsuarioId", usuario.Id);
+                cmd.ExecuteNonQuery();
+
+                // Reasignar sucursales
+                foreach (var sucursalId in usuario.Sucursales)
+                {
+                    cmd = new SQLiteCommand(
+                        "INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) " +
+                        "VALUES (@UsuarioId, @SucursalId)", conn);
+                    cmd.Parameters.AddWithValue("@UsuarioId", usuario.Id);
+                    cmd.Parameters.AddWithValue("@SucursalId", sucursalId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public void EliminarUsuario(int id)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            using var transaction = conn.BeginTransaction();
+            try
+            {
+                // Eliminar asignaciones de sucursales
+                var cmd = new SQLiteCommand("DELETE FROM UsuarioSucursal WHERE UsuarioId = @UsuarioId", conn);
+                cmd.Parameters.AddWithValue("@UsuarioId", id);
+                cmd.ExecuteNonQuery();
+
+                // Eliminar usuario
+                cmd = new SQLiteCommand("DELETE FROM Usuarios WHERE Id = @Id", conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+                cmd.ExecuteNonQuery();
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        private string GetHashActual(int usuarioId)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("SELECT Contrasena FROM Usuarios WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", usuarioId);
+            return cmd.ExecuteScalar()?.ToString();
+        }
+
+        // Método existente para sucursales por usuario
         private List<int> GetSucursalesPorUsuario(int usuarioId)
         {
             var sucursales = new List<int>();
