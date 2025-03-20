@@ -53,6 +53,7 @@ namespace ProStocker.Web.Controllers
                     {
                         Usuarios = _dataAccess.LeerUsuarios()
                     };
+                    TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario creado exitosamente.", type = "success" });
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
                         ViewBag.Sucursales = _dataAccess.LeerSucursales();
@@ -66,11 +67,11 @@ namespace ProStocker.Web.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Error al crear usuario: {ex.Message}");
+                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al crear usuario: {ex.Message}", type = "error" });
                 ViewBag.Sucursales = _dataAccess.LeerSucursales();
                 return PartialView("Create", usuario);
             }
         }
-
         [HttpGet]
         public IActionResult Edit(int id)
         {
@@ -97,6 +98,7 @@ namespace ProStocker.Web.Controllers
                     {
                         Usuarios = _dataAccess.LeerUsuarios()
                     };
+                    TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario actualizado exitosamente.", type = "success" });
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
                         ViewBag.Sucursales = _dataAccess.LeerSucursales();
@@ -110,6 +112,7 @@ namespace ProStocker.Web.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Error al actualizar usuario: {ex.Message}");
+                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al actualizar usuario: {ex.Message}", type = "error" });
                 ViewBag.Sucursales = _dataAccess.LeerSucursales();
                 return PartialView("Edit", usuario);
             }
@@ -134,7 +137,7 @@ namespace ProStocker.Web.Controllers
             return PartialView("Edit", usuario);
         }
 
-       
+
 
         [HttpPost]
         public IActionResult Delete(int id)
@@ -146,6 +149,7 @@ namespace ProStocker.Web.Controllers
                 {
                     Usuarios = _dataAccess.LeerUsuarios()
                 };
+                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario eliminado exitosamente.", type = "success" });
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
                     ViewBag.Sucursales = _dataAccess.LeerSucursales();
@@ -155,7 +159,7 @@ namespace ProStocker.Web.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Error al eliminar usuario: {ex.Message}");
+                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al eliminar usuario: {ex.Message}", type = "error" });
                 ViewBag.Sucursales = _dataAccess.LeerSucursales();
                 return View("Index");
             }

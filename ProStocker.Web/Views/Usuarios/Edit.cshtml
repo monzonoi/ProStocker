@@ -2,6 +2,17 @@
 
 <form asp-action="Edit" method="post">
     <input type="hidden" name="Id" value="@Model.Id" />
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
     <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input type="text" name="Nombre" value="@Model.Nombre" class="form-control" required />
@@ -24,9 +35,16 @@
     <div class="mb-3">
         <label class="form-label">Sucursales</label>
         <select name="Sucursales" class="form-select" multiple>
-            @foreach (var sucursal in ViewBag.Sucursales ?? new List<Sucursal>())
+            @if (ViewBag.Sucursales != null)
             {
-                <option value="@sucursal.Id" selected="@(Model.Sucursales.Contains(sucursal.Id))">@sucursal.Nombre</option>
+                foreach (var sucursal in ViewBag.Sucursales as List<Sucursal>)
+                {
+                    <option value="@sucursal.Id" selected="@(Model.Sucursales.Contains(sucursal.Id))">@sucursal.Nombre</option>
+                }
+            }
+            else
+            {
+                <option value="" disabled>No hay sucursales disponibles</option>
             }
         </select>
     </div>

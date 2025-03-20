@@ -76,26 +76,13 @@
             modal.show();
         }
 
-        function deleteUser(url) {
-            fetch(url, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.text();
-                })
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const content = doc.querySelector('.content');
-                    if (content) {
-                        document.getElementById('contentArea').innerHTML = content.innerHTML;
-                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                    }
-                })
-                .catch(error => console.error('Error al eliminar el usuario:', error));
+        // Mostrar notificaciones desde TempData
+        @if (TempData["Notification"] != null)
+        {
+            <text>
+                const notification = @Html.Raw(TempData["Notification"]);
+                showNotification(notification.message, notification.type);
+            </text>
         }
     </script>
 }

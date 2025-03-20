@@ -1,4 +1,15 @@
 ﻿<form asp-action="Create" method="post">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
     <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input type="text" name="Nombre" class="form-control" required />
