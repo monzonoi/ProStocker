@@ -10,7 +10,14 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <a class="navbar-brand" href="/">ProStocker</a>
-            <!-- Menú dinámico según usuario -->
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pos" asp-action="Index">POS</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Articulos" asp-action="Index">Artículos</a></li>
+                </ul>
+            </div>
         </nav>
     </header>
     <div class="container">

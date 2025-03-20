@@ -61,7 +61,8 @@ namespace ProStocker.Web.DAL
             using var conn = new SQLiteConnection(_connectionString);
             conn.Open();
             var cmd = new SQLiteCommand(
-                "SELECT Id, Codigo, Descripcion, Precio1, Costo FROM Articulos WHERE Codigo = @Codigo", conn);
+                "SELECT Id, Codigo, Descripcion, Imagen, Precio1, Precio2, Precio3, Costo " +
+                "FROM Articulos WHERE Codigo = @Codigo", conn);
             cmd.Parameters.AddWithValue("@Codigo", codigo);
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
@@ -71,8 +72,11 @@ namespace ProStocker.Web.DAL
                     Id = reader.GetInt32(0),
                     Codigo = reader.GetString(1),
                     Descripcion = reader.GetString(2),
-                    Precio1 = reader.GetDecimal(3),
-                    Costo = reader.GetDecimal(4)
+                    Imagen = reader.IsDBNull(3) ? null : reader.GetString(3),
+                    Precio1 = reader.GetDecimal(4),
+                    Precio2 = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+                    Precio3 = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
+                    Costo = reader.GetDecimal(7)
                 };
             }
             return null;
@@ -175,6 +179,335 @@ namespace ProStocker.Web.DAL
             cmd.Parameters.AddWithValue("@MontoReal", montoReal);
             cmd.Parameters.AddWithValue("@TurnoId", turnoId);
             cmd.ExecuteNonQuery();
+        }
+
+
+
+
+        // CRUD para Artículos
+        public void CrearArticulo(Articulo articulo)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "INSERT INTO Articulos (Codigo, Descripcion, Imagen, Precio1, Precio2, Precio3, Costo) " +
+                "VALUES (@Codigo, @Descripcion, @Imagen, @Precio1, @Precio2, @Precio3, @Costo)", conn);
+            cmd.Parameters.AddWithValue("@Codigo", articulo.Codigo);
+            cmd.Parameters.AddWithValue("@Descripcion", articulo.Descripcion);
+            cmd.Parameters.AddWithValue("@Imagen", (object)articulo.Imagen ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Precio1", articulo.Precio1);
+            cmd.Parameters.AddWithValue("@Precio2", (object)articulo.Precio2 ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Precio3", (object)articulo.Precio3 ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Costo", articulo.Costo);
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<Articulo> LeerArticulos()
+        {
+            var articulos = new List<Articulo>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("SELECT Id, Codigo, Descripcion, Imagen, Precio1, Precio2, Precio3, Costo FROM Articulos", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                articulos.Add(new Articulo
+                {
+                    Id = reader.GetInt32(0),
+                    Codigo = reader.GetString(1),
+                    Descripcion = reader.GetString(2),
+                    Imagen = reader.IsDBNull(3) ? null : reader.GetString(3),
+                    Precio1 = reader.GetDecimal(4),
+                    Precio2 = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+                    Precio3 = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
+                    Costo = reader.GetDecimal(7)
+                });
+            }
+            return articulos;
+        }
+
+        public void ActualizarArticulo(Articulo articulo)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "UPDATE Articulos SET Codigo = @Codigo, Descripcion = @Descripcion, Imagen = @Imagen, " +
+                "Precio1 = @Precio1, Precio2 = @Precio2, Precio3 = @Precio3, Costo = @Costo WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", articulo.Id);
+            cmd.Parameters.AddWithValue("@Codigo", articulo.Codigo);
+            cmd.Parameters.AddWithValue("@Descripcion", articulo.Descripcion);
+            cmd.Parameters.AddWithValue("@Imagen", (object)articulo.Imagen ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Precio1", articulo.Precio1);
+            cmd.Parameters.AddWithValue("@Precio2", (object)articulo.Precio2 ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Precio3", (object)articulo.Precio3 ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Costo", articulo.Costo);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void EliminarArticulo(int id)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("DELETE FROM Articulos WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        // CRUD para StockPorSucursal
+        public void CrearStockPorSucursal(StockPorSucursal stock)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "INSERT INTO StockPorSucursal (SucursalId, ArticuloId, Stock, StockMinimo) " +
+                "VALUES (@SucursalId, @ArticuloId, @Stock, @StockMinimo)", conn);
+            cmd.Parameters.AddWithValue("@SucursalId", stock.SucursalId);
+            cmd.Parameters.AddWithValue("@ArticuloId", stock.ArticuloId);
+            cmd.Parameters.AddWithValue("@Stock", stock.Stock);
+            cmd.Parameters.AddWithValue("@StockMinimo", stock.StockMinimo);
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<StockPorSucursal> LeerStockPorSucursal()
+        {
+            var stocks = new List<StockPorSucursal>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("SELECT SucursalId, ArticuloId, Stock, StockMinimo FROM StockPorSucursal", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                stocks.Add(new StockPorSucursal
+                {
+                    SucursalId = reader.GetInt32(0),
+                    ArticuloId = reader.GetInt32(1),
+                    Stock = reader.GetDecimal(2),
+                    StockMinimo = reader.GetDecimal(3)
+                });
+            }
+            return stocks;
+        }
+
+        public void ActualizarStockPorSucursal(StockPorSucursal stock)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "UPDATE StockPorSucursal SET Stock = @Stock, StockMinimo = @StockMinimo " +
+                "WHERE SucursalId = @SucursalId AND ArticuloId = @ArticuloId", conn);
+            cmd.Parameters.AddWithValue("@SucursalId", stock.SucursalId);
+            cmd.Parameters.AddWithValue("@ArticuloId", stock.ArticuloId);
+            cmd.Parameters.AddWithValue("@Stock", stock.Stock);
+            cmd.Parameters.AddWithValue("@StockMinimo", stock.StockMinimo);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void EliminarStockPorSucursal(int sucursalId, int articuloId)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "DELETE FROM StockPorSucursal WHERE SucursalId = @SucursalId AND ArticuloId = @ArticuloId", conn);
+            cmd.Parameters.AddWithValue("@SucursalId", sucursalId);
+            cmd.Parameters.AddWithValue("@ArticuloId", articuloId);
+            cmd.ExecuteNonQuery();
+        }
+
+        // CRUD para Cajas
+        public void CrearCaja(Caja caja)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "INSERT INTO Cajas (SucursalId, Nombre, Estado) VALUES (@SucursalId, @Nombre, @Estado)", conn);
+            cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
+            cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
+            cmd.Parameters.AddWithValue("@Estado", caja.Estado);
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<Caja> LeerCajas()
+        {
+            var cajas = new List<Caja>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("SELECT Id, SucursalId, Nombre, Estado FROM Cajas", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                cajas.Add(new Caja
+                {
+                    Id = reader.GetInt32(0),
+                    SucursalId = reader.GetInt32(1),
+                    Nombre = reader.GetString(2),
+                    Estado = reader.GetString(3)
+                });
+            }
+            return cajas;
+        }
+
+        public void ActualizarCaja(Caja caja)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "UPDATE Cajas SET SucursalId = @SucursalId, Nombre = @Nombre, Estado = @Estado WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", caja.Id);
+            cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
+            cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
+            cmd.Parameters.AddWithValue("@Estado", caja.Estado);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void EliminarCaja(int id)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("DELETE FROM Cajas WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            cmd.ExecuteNonQuery();
+        }
+
+        // CRUD para TurnosCaja (ya tenemos Abrir y Cerrar, añadimos Leer y Actualizar)
+        public List<TurnoCaja> LeerTurnosCaja()
+        {
+            var turnos = new List<TurnoCaja>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "SELECT Id, CajaId, UsuarioId, FechaInicio, FechaFin, MontoInicial, MontoFinal, MontoReal, Diferencia, Estado " +
+                "FROM TurnosCaja", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                turnos.Add(new TurnoCaja
+                {
+                    Id = reader.GetInt32(0),
+                    CajaId = reader.GetInt32(1),
+                    UsuarioId = reader.GetInt32(2),
+                    FechaInicio = DateTime.Parse(reader.GetString(3)),
+                    FechaFin = reader.IsDBNull(4) ? null : DateTime.Parse(reader.GetString(4)),
+                    MontoInicial = reader.GetDecimal(5),
+                    MontoFinal = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
+                    MontoReal = reader.IsDBNull(7) ? null : reader.GetDecimal(7),
+                    Diferencia = reader.IsDBNull(8) ? null : reader.GetDecimal(8),
+                    Estado = reader.GetString(9)
+                });
+            }
+            return turnos;
+        }
+
+        public void ActualizarTurnoCaja(TurnoCaja turno)
+        {
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "UPDATE TurnosCaja SET CajaId = @CajaId, UsuarioId = @UsuarioId, FechaInicio = @FechaInicio, " +
+                "FechaFin = @FechaFin, MontoInicial = @MontoInicial, MontoFinal = @MontoFinal, " +
+                "MontoReal = @MontoReal, Diferencia = @Diferencia, Estado = @Estado WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", turno.Id);
+            cmd.Parameters.AddWithValue("@CajaId", turno.CajaId);
+            cmd.Parameters.AddWithValue("@UsuarioId", turno.UsuarioId);
+            cmd.Parameters.AddWithValue("@FechaInicio", turno.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss"));
+            cmd.Parameters.AddWithValue("@FechaFin", (object)turno.FechaFin?.ToString("yyyy-MM-ddTHH:mm:ss") ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@MontoInicial", turno.MontoInicial);
+            cmd.Parameters.AddWithValue("@MontoFinal", (object)turno.MontoFinal ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@MontoReal", (object)turno.MontoReal ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Diferencia", (object)turno.Diferencia ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Estado", turno.Estado);
+            cmd.ExecuteNonQuery();
+        }
+    
+
+
+    // Obtener sucursales
+        public List<Sucursal> LeerSucursales()
+        {
+            var sucursales = new List<Sucursal>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand("SELECT Id, Nombre, Direccion FROM Sucursales", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                sucursales.Add(new Sucursal
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Direccion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                });
+            }
+            return sucursales;
+        }
+
+        // Reporte de ventas por sucursal
+        public List<(Sucursal Sucursal, decimal TotalVentas, decimal TotalGanancia)> ReporteVentasPorSucursal(DateTime? fechaInicio = null, DateTime? fechaFin = null)
+        {
+            var reportes = new List<(Sucursal, decimal, decimal)>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var sql = "SELECT s.Id, s.Nombre, s.Direccion, SUM(v.TotalVenta) as TotalVentas, " +
+                      "SUM(v.TotalVenta - v.TotalCosto) as TotalGanancia " +
+                      "FROM Ventas v " +
+                      "JOIN Sucursales s ON v.SucursalId = s.Id " +
+                      "WHERE v.Estado = 'Completada'";
+            if (fechaInicio.HasValue) sql += " AND v.Fecha >= @FechaInicio";
+            if (fechaFin.HasValue) sql += " AND v.Fecha <= @FechaFin";
+            sql += " GROUP BY s.Id, s.Nombre, s.Direccion";
+
+            var cmd = new SQLiteCommand(sql, conn);
+            if (fechaInicio.HasValue) cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Value.ToString("yyyy-MM-ddTHH:mm:ss"));
+            if (fechaFin.HasValue) cmd.Parameters.AddWithValue("@FechaFin", fechaFin.Value.ToString("yyyy-MM-ddTHH:mm:ss"));
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var sucursal = new Sucursal
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Direccion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                };
+                var totalVentas = reader.GetDecimal(3);
+                var totalGanancia = reader.GetDecimal(4);
+                reportes.Add((sucursal, totalVentas, totalGanancia));
+            }
+            return reportes;
+        }
+
+        // Reporte de stock mínimo por sucursal
+        public List<(Sucursal Sucursal, Articulo Articulo, decimal Stock, decimal StockMinimo)> ReporteStockMinimo()
+        {
+            var reportes = new List<(Sucursal, Articulo, decimal, decimal)>();
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+            var cmd = new SQLiteCommand(
+                "SELECT s.Id, s.Nombre, s.Direccion, a.Id, a.Codigo, a.Descripcion, " +
+                "sp.Stock, sp.StockMinimo " +
+                "FROM StockPorSucursal sp " +
+                "JOIN Sucursales s ON sp.SucursalId = s.Id " +
+                "JOIN Articulos a ON sp.ArticuloId = a.Id " +
+                "WHERE sp.Stock <= sp.StockMinimo", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var sucursal = new Sucursal
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Direccion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                };
+                var articulo = new Articulo
+                {
+                    Id = reader.GetInt32(3),
+                    Codigo = reader.GetString(4),
+                    Descripcion = reader.GetString(5)
+                };
+                var stock = reader.GetDecimal(6);
+                var stockMinimo = reader.GetDecimal(7);
+                reportes.Add((sucursal, articulo, stock, stockMinimo));
+            }
+            return reportes;
         }
     }
 }

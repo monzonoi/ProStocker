@@ -1,0 +1,23 @@
+﻿@model List<ProStocker.Web.Models.Articulo>
+<h2>Artículos</h2>
+<a asp-action="Create" class="btn btn-primary">Nuevo Artículo</a>
+<table class="table">
+    <thead>
+        <tr><th>Código</th><th>Descripción</th><th>Precio 1</th><th>Costo</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Codigo</td>
+                <td>@item.Descripcion</td>
+                <td>@item.Precio1</td>
+                <td>@item.Costo</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning">Editar</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

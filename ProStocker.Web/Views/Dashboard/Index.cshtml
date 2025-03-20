@@ -1,0 +1,89 @@
+﻿@model ProStocker.Web.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<h2>Dashboard</h2>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form asp-action="FiltrarReportes" method="post" class="form-inline">
+            <div class="form-group mr-2">
+                <label>Sucursal:</label>
+                <select asp-items="@(new SelectList(Model.Sucursales, "Id", "Nombre", Model.SucursalSeleccionada?.Id))"
+                        name="sucursalId" class="form-control" onchange="this.form.submit()"></select>
+            </div>
+            <div class="form-group mr-2">
+                <label>Caja:</label>
+                <select asp-items="@(new SelectList(Model.Cajas, "Id", "Nombre", Model.CajaSeleccionada?.Id))"
+                        name="cajaId" class="form-control" onchange="this.form.submit()"></select>
+            </div>
+            <div class="form-group mr-2">
+                <label>Fecha Inicio:</label>
+                <input type="datetime-local" name="fechaInicio" value="@(Model.FechaInicio?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+            </div>
+            <div class="form-group mr-2">
+                <label>Fecha Fin:</label>
+                <input type="datetime-local" name="fechaFin" value="@(Model.FechaFin?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>POS</h3>
+        @if (Model.TurnoActivo != null)
+        {
+            <p>Turno Activo en @Model.CajaSeleccionada.Nombre - Inicio: @Model.TurnoActivo.FechaInicio</p>
+            <a asp-controller="Pos" asp-action="Index" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
+               asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-success">Ir al POS</a>
+        }
+        else
+        {
+            <p>No hay turno activo en @Model.CajaSeleccionada.Nombre</p>
+            <a asp-controller="Pos" asp-action="AbrirTurno" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
+               asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-primary">Abrir Turno</a>
+        }
+    </div>
+    <div class="col-md-6">
+        <h3>Ventas por Sucursal</h3>
+        <table class="table">
+            <thead>
+                <tr><th>Sucursal</th><th>Total Ventas</th><th>Ganancia</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ReporteVentas)
+                {
+                    <tr>
+                        <td>@item.Sucursal.Nombre</td>
+                        <td>@item.TotalVentas.ToString("C")</td>
+                        <td>@item.TotalGanancia.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12">
+        <h3>Stock Mínimo</h3>
+        <table class="table">
+            <thead>
+                <tr><th>Sucursal</th><th>Artículo</th><th>Stock Actual</th><th>Stock Mínimo</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ReporteStockMinimo)
+                {
+                    <tr>
+                        <td>@item.Sucursal.Nombre</td>
+                        <td>@item.Articulo.Descripcion</td>
+                        <td>@item.Stock</td>
+                        <td>@item.StockMinimo</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
