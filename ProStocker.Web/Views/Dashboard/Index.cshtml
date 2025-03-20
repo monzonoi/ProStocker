@@ -2,88 +2,180 @@
 @{
     ViewData["Title"] = "Dashboard";
 }
-<h2>Dashboard</h2>
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <form asp-action="FiltrarReportes" method="post" class="form-inline">
-            <div class="form-group mr-2">
-                <label>Sucursal:</label>
+<div class="container-fluid">
+    <h1 class="text-center mb-4" style="color: #54BAB9; text-shadow: 0 0 10px rgba(84, 186, 185, 0.7);">Dashboard ProStocker</h1>
+
+    <!-- Filtros Dinámicos -->
+    <div class="card mb-4 p-4">
+        <form id="filterForm" asp-action="FiltrarReportes" method="post" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Sucursal</label>
                 <select asp-items="@(new SelectList(Model.Sucursales, "Id", "Nombre", Model.SucursalSeleccionada?.Id))"
-                        name="sucursalId" class="form-control" onchange="this.form.submit()"></select>
+                        name="sucursalId" class="form-select" onchange="updateCajas(this.value)"></select>
             </div>
-            <div class="form-group mr-2">
-                <label>Caja:</label>
-                <select asp-items="@(new SelectList(Model.Cajas, "Id", "Nombre", Model.CajaSeleccionada?.Id))"
-                        name="cajaId" class="form-control" onchange="this.form.submit()"></select>
+            <div class="col-md-3">
+                <label class="form-label">Caja</label>
+                <select id="cajaSelect" name="cajaId" class="form-select" onchange="checkTurno()">
+                    @foreach (var caja in Model.Cajas)
+                    {
+                        <option value="@caja.Id" selected="@(caja.Id == Model.CajaSeleccionada?.Id)">@caja.Nombre</option>
+                    }
+                </select>
             </div>
-            <div class="form-group mr-2">
-                <label>Fecha Inicio:</label>
+            <div class="col-md-2">
+                <label class="form-label">Fecha Inicio</label>
                 <input type="datetime-local" name="fechaInicio" value="@(Model.FechaInicio?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
             </div>
-            <div class="form-group mr-2">
-                <label>Fecha Fin:</label>
+            <div class="col-md-2">
+                <label class="form-label">Fecha Fin</label>
                 <input type="datetime-local" name="fechaFin" value="@(Model.FechaFin?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
             </div>
-            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-neon w-100"><i class="fas fa-filter"></i> Filtrar</button>
+            </div>
         </form>
     </div>
+
+    <!-- Sección POS -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 text-center">
+                <h3 class="text-light"><i class="fas fa-cash-register"></i> Punto de Venta</h3>
+                @if (Model.TurnoActivo != null)
+                {
+                    <p class="text-success">Turno Activo en @Model.CajaSeleccionada.Nombre</p>
+                    <p>Inicio: @Model.TurnoActivo.FechaInicio.ToString("HH:mm dd/MM/yyyy")</p>
+                    <a asp-controller="Pos" asp-action="Index" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
+                       asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-neon"><i class="fas fa-arrow-right"></i> Ir al POS</a>
+                }
+                else
+                {
+                    <p class="text-warning">No hay turno activo en @Model.CajaSeleccionada.Nombre</p>
+                    <a asp-controller="Pos" asp-action="AbrirTurno" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
+                       asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-neon"><i class="fas fa-play"></i> Abrir Turno</a>
+                }
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card p-3">
+                <h3 class="text-light"><i class="fas fa-chart-line"></i> Ventas por Sucursal</h3>
+                <canvas id="ventasChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Mínimo -->
+    <div class="card p-3">
+        <h3 class="text-light"><i class="fas fa-exclamation-triangle"></i> Stock Mínimo</h3>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th>Sucursal</th>
+                        <th>Artículo</th>
+                        <th>Stock Actual</th>
+                        <th>Stock Mínimo</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTable">
+                    @foreach (var item in Model.ReporteStockMinimo)
+                    {
+                        <tr>
+                            <td>@item.Sucursal.Nombre</td>
+                            <td>@item.Articulo.Descripcion</td>
+                            <td class="@(item.Stock < item.StockMinimo ? "text-danger" : "text-warning")">@item.Stock</td>
+                            <td>@item.StockMinimo</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <h3>POS</h3>
-        @if (Model.TurnoActivo != null)
-        {
-            <p>Turno Activo en @Model.CajaSeleccionada.Nombre - Inicio: @Model.TurnoActivo.FechaInicio</p>
-            <a asp-controller="Pos" asp-action="Index" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
-               asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-success">Ir al POS</a>
-        }
-        else
-        {
-            <p>No hay turno activo en @Model.CajaSeleccionada.Nombre</p>
-            <a asp-controller="Pos" asp-action="AbrirTurno" asp-route-sucursalId="@Model.SucursalSeleccionada.Id"
-               asp-route-cajaId="@Model.CajaSeleccionada.Id" class="btn btn-primary">Abrir Turno</a>
-        }
-    </div>
-    <div class="col-md-6">
-        <h3>Ventas por Sucursal</h3>
-        <table class="table">
-            <thead>
-                <tr><th>Sucursal</th><th>Total Ventas</th><th>Ganancia</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.ReporteVentas)
-                {
-                    <tr>
-                        <td>@item.Sucursal.Nombre</td>
-                        <td>@item.TotalVentas.ToString("C")</td>
-                        <td>@item.TotalGanancia.ToString("C")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Datos para el gráfico de ventas
+        const ventasData = {
+            labels: [@Html.Raw(string.Join(",", Model.ReporteVentas.Select(r => $"'{r.Sucursal.Nombre}'")))],
+            datasets: [{
+                label: 'Ventas',
+                data: [@Html.Raw(string.Join(",", Model.ReporteVentas.Select(r => r.TotalVentas)))],
+                backgroundColor: 'rgba(84, 186, 185, 0.7)',
+                borderColor: '#54BAB9',
+                borderWidth: 2
+            }, {
+                label: 'Ganancia',
+                data: [@Html.Raw(string.Join(",", Model.ReporteVentas.Select(r => r.TotalGanancia)))],
+                backgroundColor: 'rgba(233, 69, 96, 0.7)',
+                borderColor: '#e94560',
+                borderWidth: 2
+            }]
+        };
 
-<div class="row mt-3">
-    <div class="col-md-12">
-        <h3>Stock Mínimo</h3>
-        <table class="table">
-            <thead>
-                <tr><th>Sucursal</th><th>Artículo</th><th>Stock Actual</th><th>Stock Mínimo</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.ReporteStockMinimo)
-                {
-                    <tr>
-                        <td>@item.Sucursal.Nombre</td>
-                        <td>@item.Articulo.Descripcion</td>
-                        <td>@item.Stock</td>
-                        <td>@item.StockMinimo</td>
-                    </tr>
+        // Configuración del gráfico
+        const ctx = document.getElementById('ventasChart').getContext('2d');
+        const ventasChart = new Chart(ctx, {
+            type: 'bar',
+            data: ventasData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#e0e0e0' } },
+                    x: { ticks: { color: '#e0e0e0' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#e0e0e0' } }
                 }
-            </tbody>
-        </table>
-    </div>
-</div>
+            }
+        });
+
+        // Filtrar cajas dinámicamente
+        function updateCajas(sucursalId) {
+            fetch(`/Dashboard/GetCajasPorSucursal?sucursalId=${sucursalId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const cajaSelect = document.getElementById('cajaSelect');
+                    cajaSelect.innerHTML = '';
+                    data.forEach(caja => {
+                        const option = document.createElement('option');
+                        option.value = caja.id;
+                        option.text = caja.nombre;
+                        cajaSelect.appendChild(option);
+                    });
+                    checkTurno();
+                });
+        }
+
+        // Verificar turno activo
+        function checkTurno() {
+            const cajaId = document.getElementById('cajaSelect').value;
+            fetch(`/Dashboard/GetTurnoActivo?cajaId=${cajaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const posCard = document.querySelector('.col-md-4 .card');
+                    if (data.turnoActivo) {
+                        posCard.innerHTML = `
+                            <h3 class="text-light"><i class="fas fa-cash-register"></i> Punto de Venta</h3>
+                            <p class="text-success">Turno Activo en ${data.cajaNombre}</p>
+                            <p>Inicio: ${new Date(data.fechaInicio).toLocaleString()}</p>
+                            <a href="/Pos/Index?sucursalId=${data.sucursalId}&cajaId=${cajaId}" class="btn btn-neon"><i class="fas fa-arrow-right"></i> Ir al POS</a>
+                        `;
+                    } else {
+                        posCard.innerHTML = `
+                            <h3 class="text-light"><i class="fas fa-cash-register"></i> Punto de Venta</h3>
+                            <p class="text-warning">No hay turno activo en ${data.cajaNombre}</p>
+                            <a href="/Pos/AbrirTurno?sucursalId=${data.sucursalId}&cajaId=${cajaId}" class="btn btn-neon"><i class="fas fa-play"></i> Abrir Turno</a>
+                        `;
+                    }
+                });
+        }
+
+        // Actualizar al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCajas(@Model.SucursalSeleccionada?.Id ?? Model.Sucursales.FirstOrDefault()?.Id);
+        });
+    </script>
+}

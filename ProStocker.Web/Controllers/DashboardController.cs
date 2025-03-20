@@ -51,5 +51,26 @@ namespace ProStocker.Web.Controllers
         {
             return RedirectToAction("Index", new { sucursalId, cajaId, fechaInicio, fechaFin });
         }
+
+        [HttpGet]
+        public IActionResult GetCajasPorSucursal(int sucursalId)
+        {
+            var cajas = _dataAccess.LeerCajas().Where(c => c.SucursalId == sucursalId).Select(c => new { c.Id, c.Nombre });
+            return Json(cajas);
+        }
+
+        [HttpGet]
+        public IActionResult GetTurnoActivo(int cajaId)
+        {
+            var turno = _dataAccess.GetTurnoActivo(cajaId);
+            var caja = _dataAccess.LeerCajas().FirstOrDefault(c => c.Id == cajaId);
+            return Json(new
+            {
+                turnoActivo = turno != null,
+                cajaNombre = caja?.Nombre,
+                fechaInicio = turno?.FechaInicio.ToString("o"),
+                sucursalId = caja?.SucursalId
+            });
+        }
     }
 }
