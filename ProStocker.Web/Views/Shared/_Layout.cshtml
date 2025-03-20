@@ -14,35 +14,58 @@
             color: #e0e0e0;
             min-height: 100vh;
         }
+
         .navbar {
             background: #0f3460 !important;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
+
         .navbar-brand, .nav-link {
             color: #e94560 !important;
         }
-        .nav-link:hover {
-            color: #54BAB9 !important;
-        }
+
+            .nav-link:hover {
+                color: #54BAB9 !important;
+            }
+
         .card {
             background: #16213e;
-            border: 1px solid #54BAB9;
-            border-radius: 10px;
-            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.2s;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(84, 186, 185, 0.5);
-        }
+
+            .card:hover {
+                transform: scale(1.02);
+            }
+
         .btn-neon {
             background: #e94560;
             border: none;
             color: white;
+            border-radius: 25px;
+            padding: 10px 20px;
             transition: all 0.3s;
         }
-        .btn-neon:hover {
-            background: #54BAB9;
-            box-shadow: 0 0 10px #54BAB9;
+
+            .btn-neon:hover {
+                background: #54BAB9;
+                box-shadow: 0 0 15px rgba(84, 186, 185, 0.7);
+            }
+
+        .text-neon {
+            font-weight: 700;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .form-select, .form-control {
+            background: #0f3460 !important;
+            color: #e0e0e0 !important;
+            border: 1px solid #54BAB9 !important;
+        }
+
+        .table-dark {
+            background: #0f3460;
         }
     </style>
 </head>
@@ -75,9 +98,11 @@
             </div>
         </div>
     </nav>
+
     <div class="container mt-4">
-        @RenderBody()
+        @RenderBody() <!-- Aquí es donde se renderiza el contenido de la vista específica -->
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     @RenderSection("Scripts", required: false)
 </body>

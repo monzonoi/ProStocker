@@ -11,5 +11,9 @@
         public List<(Sucursal Sucursal, Articulo Articulo, decimal Stock, decimal StockMinimo)> ReporteStockMinimo { get; set; }
         public DateTime? FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
+        public decimal VentasTotales { get; set; }
+        public decimal GananciaTotal { get; set; }
+        public decimal TicketPromedio { get; set; }
+        public int TotalTransacciones { get; set; }
     }
 }

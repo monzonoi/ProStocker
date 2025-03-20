@@ -18,16 +18,12 @@ namespace ProStocker.Web.Controllers
         public IActionResult Index(int? sucursalId, int? cajaId, DateTime? fechaInicio, DateTime? fechaFin)
         {
             var sucursalesPermitidas = User.Claims.Where(c => c.Type == "Sucursal").Select(c => int.Parse(c.Value)).ToList();
-            var todasSucursales = _dataAccess.LeerSucursales();
-            var model = new DashboardViewModel
+            var model = _dataAccess.GetDashboardData(sucursalId, fechaInicio, fechaFin);
+
+            if (!User.IsInRole("Admin"))
             {
-                Sucursales = User.IsInRole("Admin") ? todasSucursales : todasSucursales.Where(s => sucursalesPermitidas.Contains(s.Id)).ToList(),
-                Cajas = _dataAccess.LeerCajas(),
-                ReporteVentas = _dataAccess.ReporteVentasPorSucursal(fechaInicio, fechaFin),
-                ReporteStockMinimo = _dataAccess.ReporteStockMinimo(),
-                FechaInicio = fechaInicio,
-                FechaFin = fechaFin
-            };
+                model.Sucursales = model.Sucursales.Where(s => sucursalesPermitidas.Contains(s.Id)).ToList();
+            }
 
             model.SucursalSeleccionada = sucursalId.HasValue && model.Sucursales.Any(s => s.Id == sucursalId.Value)
                 ? model.Sucursales.FirstOrDefault(s => s.Id == sucursalId.Value)

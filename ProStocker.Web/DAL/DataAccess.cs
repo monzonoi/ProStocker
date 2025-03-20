@@ -14,6 +14,46 @@ namespace ProStocker.Web.DAL
             _connectionString = configuration.GetConnectionString("SQLiteConnection");
         }
 
+        public DashboardViewModel GetDashboardData(int? sucursalId, DateTime? fechaInicio, DateTime? fechaFin)
+        {
+            var model = new DashboardViewModel
+            {
+                Sucursales = LeerSucursales(),
+                Cajas = LeerCajas(),
+                ReporteVentas = ReporteVentasPorSucursal(fechaInicio, fechaFin),
+                ReporteStockMinimo = ReporteStockMinimo(),
+                FechaInicio = fechaInicio,
+                FechaFin = fechaFin
+            };
+
+            using var conn = new SQLiteConnection(_connectionString);
+            conn.Open();
+
+            // Calcular métricas
+            var sql = "SELECT COUNT(*) as TotalTransacciones, SUM(TotalVenta) as VentasTotales, " +
+                      "SUM(TotalVenta - TotalCosto) as GananciaTotal " +
+                      "FROM Ventas WHERE Estado = 'Completada'";
+            if (sucursalId.HasValue) sql += " AND SucursalId = @SucursalId";
+            if (fechaInicio.HasValue) sql += " AND Fecha >= @FechaInicio";
+            if (fechaFin.HasValue) sql += " AND Fecha <= @FechaFin";
+
+            var cmd = new SQLiteCommand(sql, conn);
+            if (sucursalId.HasValue) cmd.Parameters.AddWithValue("@SucursalId", sucursalId.Value);
+            if (fechaInicio.HasValue) cmd.Parameters.AddWithValue("@FechaInicio", fechaInicio.Value.ToString("yyyy-MM-ddTHH:mm:ss"));
+            if (fechaFin.HasValue) cmd.Parameters.AddWithValue("@FechaFin", fechaFin.Value.ToString("yyyy-MM-ddTHH:mm:ss"));
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                model.TotalTransacciones = reader.GetInt32(0);
+                model.VentasTotales = reader.IsDBNull(1) ? 0 : reader.GetDecimal(1);
+                model.GananciaTotal = reader.IsDBNull(2) ? 0 : reader.GetDecimal(2);
+                model.TicketPromedio = model.TotalTransacciones > 0 ? model.VentasTotales / model.TotalTransacciones : 0;
+            }
+
+            return model;
+        }
+
         // Abrir turno
         public int AbrirTurno(TurnoCaja turno)
         {
