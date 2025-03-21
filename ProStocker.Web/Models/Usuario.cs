@@ -1,14 +1,27 @@
 ﻿// Models/Usuario.cs
+using System.ComponentModel.DataAnnotations;
+
 namespace ProStocker.Web.Models
 {
+    public class TipoUsuario
+    {
+        public int Id { get; set; }
+        [Required]
+        public string Nombre { get; set; }
+        public string Descripcion { get; set; }
+    }
+
     public class Usuario
     {
         public int Id { get; set; }
+        [Required]
         public string Nombre { get; set; }
-        public string UsuarioNombre { get; set; } // Campo "Usuario" en la tabla
-        public string Contrasena { get; set; }   // Campo "Contrasena" en la tabla
-        public string Tipo { get; set; }         // "Admin" o "Usuario"
-        public List<int> Sucursales { get; set; } = new List<int>(); // Sucursales asignadas
+        [Required]
+        public string UsuarioNombre { get; set; }
+        public string Contrasena { get; set; }
+        [Required]
+        public int TipoId { get; set; } // Ahora es un ID
+        public List<int> Sucursales { get; set; } = new List<int>();
     }
 
 }

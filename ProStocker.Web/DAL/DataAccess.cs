@@ -14,6 +14,235 @@ namespace ProStocker.Web.DAL
             _connectionString = configuration.GetConnectionString("SQLiteConnection");
         }
 
+        // Método auxiliar para abrir conexión asíncrona
+        private async Task<SQLiteConnection> GetOpenConnectionAsync()
+        {
+            var conn = new SQLiteConnection(_connectionString);
+            await conn.OpenAsync();
+            return conn;
+        }
+
+        // Crear usuario asíncrono
+        public async Task CrearUsuarioAsync(Usuario usuario)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            using var transaction = await conn.BeginTransactionAsync();
+            try
+            {
+                var cmd = new SQLiteCommand(
+                    "INSERT INTO Usuarios (Nombre, Usuario, Contrasena, TipoId) " +
+                    "VALUES (@Nombre, @Usuario, @Contrasena, @TipoId); " +
+                    "SELECT last_insert_rowid();", conn);
+                cmd.Parameters.AddWithValue("@Nombre", usuario.Nombre);
+                cmd.Parameters.AddWithValue("@Usuario", usuario.UsuarioNombre);
+                cmd.Parameters.AddWithValue("@Contrasena", BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
+                cmd.Parameters.AddWithValue("@TipoId", usuario.TipoId);
+                int usuarioId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                foreach (var sucursalId in usuario.Sucursales)
+                {
+                    cmd = new SQLiteCommand(
+                        "INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) " +
+                        "VALUES (@UsuarioId, @SucursalId)", conn);
+                    cmd.Parameters.AddWithValue("@UsuarioId", usuarioId);
+                    cmd.Parameters.AddWithValue("@SucursalId", sucursalId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // Leer usuarios asíncrono
+        public async Task<List<Usuario>> LeerUsuariosAsync()
+        {
+            var usuarios = new List<Usuario>();
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand(
+                "SELECT u.Id, u.Nombre, u.Usuario, u.TipoId " +
+                "FROM Usuarios u", conn);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var usuario = new Usuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    UsuarioNombre = reader.GetString(2),
+                    TipoId = reader.GetInt32(3)
+                };
+                usuario.Sucursales = await GetSucursalesPorUsuarioAsync(usuario.Id);
+                usuarios.Add(usuario);
+            }
+            return usuarios;
+        }
+
+        // Actualizar usuario asíncrono
+        public async Task ActualizarUsuarioAsync(Usuario usuario)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            using var transaction = await conn.BeginTransactionAsync();
+            try
+            {
+                var cmd = new SQLiteCommand(
+                    "UPDATE Usuarios SET Nombre = @Nombre, Usuario = @Usuario, " +
+                    "Contrasena = @Contrasena, TipoId = @TipoId WHERE Id = @Id", conn);
+                cmd.Parameters.AddWithValue("@Id", usuario.Id);
+                cmd.Parameters.AddWithValue("@Nombre", usuario.Nombre);
+                cmd.Parameters.AddWithValue("@Usuario", usuario.UsuarioNombre);
+                cmd.Parameters.AddWithValue("@Contrasena", string.IsNullOrEmpty(usuario.Contrasena)
+                    ? await GetHashActualAsync(usuario.Id)
+                    : BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
+                cmd.Parameters.AddWithValue("@TipoId", usuario.TipoId);
+                await cmd.ExecuteNonQueryAsync();
+
+                cmd = new SQLiteCommand("DELETE FROM UsuarioSucursal WHERE UsuarioId = @UsuarioId", conn);
+                cmd.Parameters.AddWithValue("@UsuarioId", usuario.Id);
+                await cmd.ExecuteNonQueryAsync();
+
+                foreach (var sucursalId in usuario.Sucursales)
+                {
+                    cmd = new SQLiteCommand(
+                        "INSERT INTO UsuarioSucursal (UsuarioId, SucursalId) " +
+                        "VALUES (@UsuarioId, @SucursalId)", conn);
+                    cmd.Parameters.AddWithValue("@UsuarioId", usuario.Id);
+                    cmd.Parameters.AddWithValue("@SucursalId", sucursalId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // Eliminar usuario asíncrono
+        public async Task EliminarUsuarioAsync(int id)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            using var transaction = await conn.BeginTransactionAsync();
+            try
+            {
+                // Eliminar asignaciones de sucursales
+                var cmd = new SQLiteCommand("DELETE FROM UsuarioSucursal WHERE UsuarioId = @UsuarioId", conn);
+                cmd.Parameters.AddWithValue("@UsuarioId", id);
+                await cmd.ExecuteNonQueryAsync();
+
+                // Eliminar usuario
+                cmd = new SQLiteCommand("DELETE FROM Usuarios WHERE Id = @Id", conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+                await cmd.ExecuteNonQueryAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // Leer usuario por ID asíncrono
+        public async Task<Usuario?> LeerUsuarioPorIdAsync(int id)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand(
+                "SELECT Id, Nombre, Usuario, Contrasena, TipoId FROM Usuarios WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var usuario = new Usuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    UsuarioNombre = reader.GetString(2),
+                    Contrasena = reader.GetString(3),
+                    TipoId = reader.GetInt32(4)
+                };
+                usuario.Sucursales = await GetSucursalesPorUsuarioAsync(usuario.Id);
+                return usuario;
+            }
+            return null;
+        }
+
+        // Leer tipos de usuario asíncrono
+        public async Task<List<TipoUsuario>> LeerTiposUsuarioAsync()
+        {
+            var tipos = new List<TipoUsuario>();
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand("SELECT Id, Nombre, Descripcion FROM TiposUsuario", conn);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                tipos.Add(new TipoUsuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Descripcion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                });
+            }
+            return tipos;
+        }
+
+      
+
+       
+
+        // Obtener sucursales por usuario asíncrono
+        private async Task<List<int>> GetSucursalesPorUsuarioAsync(int usuarioId)
+        {
+            var sucursales = new List<int>();
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand(
+                "SELECT SucursalId FROM UsuarioSucursal WHERE UsuarioId = @UsuarioId", conn);
+            cmd.Parameters.AddWithValue("@UsuarioId", usuarioId);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                sucursales.Add(reader.GetInt32(0));
+            }
+            return sucursales;
+        }
+
+        // Obtener hash actual asíncrono
+        private async Task<string> GetHashActualAsync(int usuarioId)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand("SELECT Contrasena FROM Usuarios WHERE Id = @Id", conn);
+            cmd.Parameters.AddWithValue("@Id", usuarioId);
+            var result = await cmd.ExecuteScalarAsync();
+            return result?.ToString();
+        }
+
+        // Ejemplo: Leer sucursales asíncrono
+        public async Task<List<Sucursal>> LeerSucursalesAsync()
+        {
+            var sucursales = new List<Sucursal>();
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand("SELECT Id, Nombre, Direccion FROM Sucursales", conn);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                sucursales.Add(new Sucursal
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Direccion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                });
+            }
+            return sucursales;
+        }
+
+
         public DashboardViewModel GetDashboardData(int? sucursalId, DateTime? fechaInicio, DateTime? fechaFin)
         {
             var model = new DashboardViewModel
@@ -550,6 +779,33 @@ namespace ProStocker.Web.DAL
             return reportes;
         }
 
+        public async Task<Usuario?> AutenticarUsuarioAsync(string usuarioNombre, string contrasena)
+        {
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand(
+                "SELECT Id, Nombre, Usuario, Contrasena, TipoId " +
+                "FROM Usuarios WHERE Usuario = @Usuario", conn);
+            cmd.Parameters.AddWithValue("@Usuario", usuarioNombre);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var hashAlmacenado = reader.GetString(3);
+                if (BCrypt.Net.BCrypt.Verify(contrasena, hashAlmacenado))
+                {
+                    return new Usuario
+                    {
+                        Id = reader.GetInt32(0),
+                        Nombre = reader.GetString(1),
+                        UsuarioNombre = reader.GetString(2),
+                        // No devolvemos Contrasena para evitar exponer el hash
+                        TipoId = reader.GetInt32(4),
+                        Sucursales = await GetSucursalesPorUsuarioAsync(reader.GetInt32(0))
+                    };
+                }
+            }
+            return null;
+        }
+
 
         public Usuario AutenticarUsuario(string usuarioNombre, string contrasena)
         {
@@ -570,7 +826,8 @@ namespace ProStocker.Web.DAL
                         Nombre = reader.GetString(1),
                         UsuarioNombre = reader.GetString(2),
                         Contrasena = hash,
-                        Tipo = reader.GetString(4)
+                        
+                        //Tipo = reader.GetString(4)
                     };
                     // Obtener sucursales asignadas
                     usuario.Sucursales = GetSucursalesPorUsuario(usuario.Id);
@@ -596,7 +853,7 @@ namespace ProStocker.Web.DAL
                 cmd.Parameters.AddWithValue("@Nombre", usuario.Nombre);
                 cmd.Parameters.AddWithValue("@Usuario", usuario.UsuarioNombre);
                 cmd.Parameters.AddWithValue("@Contrasena", BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
-                cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
+                //cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
                 int usuarioId = Convert.ToInt32(cmd.ExecuteScalar());
 
                 // Asignar sucursales
@@ -634,7 +891,7 @@ namespace ProStocker.Web.DAL
                     Id = reader.GetInt32(0),
                     Nombre = reader.GetString(1),
                     UsuarioNombre = reader.GetString(2),
-                    Tipo = reader.GetString(3)
+                    //Tipo = reader.GetString(3)
                 };
                 usuario.Sucursales = GetSucursalesPorUsuario(usuario.Id);
                 usuarios.Add(usuario);
@@ -659,7 +916,7 @@ namespace ProStocker.Web.DAL
                 cmd.Parameters.AddWithValue("@Contrasena", string.IsNullOrEmpty(usuario.Contrasena)
                     ? GetHashActual(usuario.Id) // No cambiar contraseña si está vacía
                     : BCrypt.Net.BCrypt.HashPassword(usuario.Contrasena));
-                cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
+                //cmd.Parameters.AddWithValue("@Tipo", usuario.Tipo);
                 cmd.ExecuteNonQuery();
 
                 // Eliminar sucursales existentes
@@ -755,7 +1012,7 @@ namespace ProStocker.Web.DAL
                     Nombre = reader.GetString(1),
                     UsuarioNombre = reader.GetString(2),
                     Contrasena = reader.GetString(3),
-                    Tipo = reader.GetString(4)
+                    //Tipo = reader.GetString(4)
                 };
                 usuario.Sucursales = GetSucursalesPorUsuario(usuario.Id);
                 return usuario;

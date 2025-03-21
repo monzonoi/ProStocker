@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using ProStocker.Web.DAL;
+using ProStocker.Web.Hubs;
 using ProStocker.Web.Models;
 
 namespace ProStocker.Web.Controllers
@@ -9,30 +11,30 @@ namespace ProStocker.Web.Controllers
     public class UsuariosController : Controller
     {
         private readonly DataAccess _dataAccess;
+        private readonly IHubContext<UsuariosHub> _hubContext;
 
-        public UsuariosController(DataAccess dataAccess)
+        public UsuariosController(DataAccess dataAccess, IHubContext<UsuariosHub> hubContext)
         {
             _dataAccess = dataAccess;
+            _hubContext = hubContext;
         }
-
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var model = new UsuariosViewModel
             {
-                Usuarios = _dataAccess.LeerUsuarios()
+                Usuarios = await _dataAccess.LeerUsuariosAsync()
             };
-            ViewBag.Sucursales = _dataAccess.LeerSucursales(); // Añadimos las sucursales al ViewBag
+            ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
             return View(model);
         }
 
-        //public IActionResult Index()
-        //{
-        //    return View(_dataAccess.LeerUsuarios());
-        //}
+     
+
         [HttpGet]
-        public IActionResult Create()
+        [Route("Usuarios/Create")]
+        public async Task<IActionResult> Create()
         {
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
+            ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
                 return PartialView("Create");
@@ -40,8 +42,118 @@ namespace ProStocker.Web.Controllers
             return View();
         }
 
+        //[HttpPost]
+        //public async Task<IActionResult> Create(Usuario usuario, int[] Sucursales)
+        //{
+        //    try
+        //    {
+        //        if (ModelState.IsValid)
+        //        {
+        //            usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+        //            await _dataAccess.CrearUsuarioAsync(usuario);
+        //            var model = new UsuariosViewModel
+        //            {
+        //                Usuarios = await _dataAccess.LeerUsuariosAsync()
+        //            };
+        //            await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario creado exitosamente.", "success");
+        //            await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
+        //            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        //            {
+        //                ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+        //                return View("Index", model);
+        //            }
+        //            return View("Index", model);
+        //        }
+        //        ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+        //        return PartialView("Create", usuario);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al crear usuario: {ex.Message}", "error");
+        //        ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+        //        return PartialView("Create", usuario);
+        //    }
+        //}
+
+        [HttpGet]
+        [Route("Usuarios/Edit/{id}")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var usuario = await _dataAccess.LeerUsuarioPorIdAsync(id);
+            if (usuario == null) return NotFound();
+            ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("Edit", usuario);
+            }
+            return View(usuario);
+        }
+
         [HttpPost]
-        public IActionResult Create(Usuario usuario, int[] Sucursales)
+        [Route("Usuarios/Edit/{id}")]
+        public async Task<IActionResult> Edit(Usuario usuario, int[] Sucursales)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+                    usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+                    await _dataAccess.ActualizarUsuarioAsync(usuario);
+                    var model = new UsuariosViewModel
+                    {
+                        Usuarios = await _dataAccess.LeerUsuariosAsync()
+                    };
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario actualizado exitosamente.", "success");
+                    await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+                        return View("Index", model);
+                    }
+                    return View("Index", model);
+                }
+                ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+                return PartialView("Edit", usuario);
+            }
+            catch (Exception ex)
+            {
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al actualizar usuario: {ex.Message}", "error");
+                ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+                return PartialView("Edit", usuario);
+            }
+        }
+
+        [HttpPost]
+        [Route("Usuarios/Delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _dataAccess.EliminarUsuarioAsync(id);
+                var model = new UsuariosViewModel
+                {
+                    Usuarios = await _dataAccess.LeerUsuariosAsync()
+                };
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario eliminado exitosamente.", "success");
+                await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+                    return View("Index", model);
+                }
+                return View("Index", model);
+            }
+            catch (Exception ex)
+            {
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al eliminar usuario: {ex.Message}", "error");
+                ViewBag.Sucursales = await _dataAccess.LeerSucursalesAsync();
+                return View("Index");
+            }
+        }
+
+        [HttpPost]
+        [Route("Usuarios/Create")]
+        public async Task<IActionResult> Create(Usuario usuario, int[] Sucursales)
         {
             try
             {
@@ -53,7 +165,9 @@ namespace ProStocker.Web.Controllers
                     {
                         Usuarios = _dataAccess.LeerUsuarios()
                     };
-                    TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario creado exitosamente.", type = "success" });
+                    // Enviar notificación y actualizar lista vía SignalR
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario creado exitosamente.", "success");
+                    await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     {
                         ViewBag.Sucursales = _dataAccess.LeerSucursales();
@@ -66,57 +180,57 @@ namespace ProStocker.Web.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Error al crear usuario: {ex.Message}");
-                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al crear usuario: {ex.Message}", type = "error" });
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al crear usuario: {ex.Message}", "error");
                 ViewBag.Sucursales = _dataAccess.LeerSucursales();
                 return PartialView("Create", usuario);
             }
-        }
-        [HttpGet]
-        public IActionResult Edit(int id)
-        {
-            var usuario = _dataAccess.LeerUsuarioPorId(id);
-            if (usuario == null) return NotFound();
-            ViewBag.Sucursales = _dataAccess.LeerSucursales();
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                return PartialView("Edit", usuario);
-            }
-            return View(usuario);
         }
 
-        [HttpPost]
-        public IActionResult Edit(Usuario usuario, int[] Sucursales)
-        {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
-                    _dataAccess.ActualizarUsuario(usuario);
-                    var model = new UsuariosViewModel
-                    {
-                        Usuarios = _dataAccess.LeerUsuarios()
-                    };
-                    TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario actualizado exitosamente.", type = "success" });
-                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    {
-                        ViewBag.Sucursales = _dataAccess.LeerSucursales();
-                        return View("Index", model);
-                    }
-                    return View("Index", model);
-                }
-                ViewBag.Sucursales = _dataAccess.LeerSucursales();
-                return PartialView("Edit", usuario);
-            }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError("", $"Error al actualizar usuario: {ex.Message}");
-                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al actualizar usuario: {ex.Message}", type = "error" });
-                ViewBag.Sucursales = _dataAccess.LeerSucursales();
-                return PartialView("Edit", usuario);
-            }
-        }
+        //[HttpGet]
+        //public IActionResult Edit(int id)
+        //{
+        //    var usuario = _dataAccess.LeerUsuarioPorId(id);
+        //    if (usuario == null) return NotFound();
+        //    ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        //    {
+        //        return PartialView("Edit", usuario);
+        //    }
+        //    return View(usuario);
+        //}
+
+        //[HttpPost]
+        //public async Task<IActionResult> Edit(Usuario usuario, int[] Sucursales)
+        //{
+        //    try
+        //    {
+        //        if (ModelState.IsValid)
+        //        {
+        //            usuario.Sucursales = Sucursales?.ToList() ?? new List<int>();
+        //            _dataAccess.ActualizarUsuario(usuario);
+        //            var model = new UsuariosViewModel
+        //            {
+        //                Usuarios = _dataAccess.LeerUsuarios()
+        //            };
+        //            await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario actualizado exitosamente.", "success");
+        //            await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
+        //            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        //            {
+        //                ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //                return View("Index", model);
+        //            }
+        //            return View("Index", model);
+        //        }
+        //        ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //        return PartialView("Edit", usuario);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al actualizar usuario: {ex.Message}", "error");
+        //        ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //        return PartialView("Edit", usuario);
+        //    }
+        //}
 
         [HttpPost]
         public IActionResult Edit(Usuario usuario)
@@ -139,31 +253,32 @@ namespace ProStocker.Web.Controllers
 
 
 
-        [HttpPost]
-        public IActionResult Delete(int id)
-        {
-            try
-            {
-                _dataAccess.EliminarUsuario(id);
-                var model = new UsuariosViewModel
-                {
-                    Usuarios = _dataAccess.LeerUsuarios()
-                };
-                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = "Usuario eliminado exitosamente.", type = "success" });
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
-                    ViewBag.Sucursales = _dataAccess.LeerSucursales();
-                    return View("Index", model);
-                }
-                return View("Index", model);
-            }
-            catch (Exception ex)
-            {
-                TempData["Notification"] = Newtonsoft.Json.JsonConvert.SerializeObject(new { message = $"Error al eliminar usuario: {ex.Message}", type = "error" });
-                ViewBag.Sucursales = _dataAccess.LeerSucursales();
-                return View("Index");
-            }
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> Delete(int id)
+        //{
+        //    try
+        //    {
+        //        _dataAccess.EliminarUsuario(id);
+        //        var model = new UsuariosViewModel
+        //        {
+        //            Usuarios = _dataAccess.LeerUsuarios()
+        //        };
+        //        await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Usuario eliminado exitosamente.", "success");
+        //        await _hubContext.Clients.All.SendAsync("RefreshUsuariosList");
+        //        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        //        {
+        //            ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //            return View("Index", model);
+        //        }
+        //        return View("Index", model);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Error al eliminar usuario: {ex.Message}", "error");
+        //        ViewBag.Sucursales = _dataAccess.LeerSucursales();
+        //        return View("Index");
+        //    }
+        //}
 
     }
 }

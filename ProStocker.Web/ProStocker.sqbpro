@@ -1,3 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="ProStocker.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="3734"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="Articulos" custom_title="0" dock_id="1" table="4,9:mainArticulos"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011e00ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">UPDATE Usuarios 
-SET Contrasena = '$2a$11$hFiRf4p9TK5NG/QA4NHomuWfziydZJ8zH2CSRgooFaUlfCodlfYuy' 
-WHERE Usuario = 'admin';</sql><current_tab id="0"/></tab_sql></sqlb_project>
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="ProStocker.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="3734"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="Articulos" custom_title="0" dock_id="1" table="4,9:mainArticulos"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011e00ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- Crear tabla temporal sin la constraint CHECK
+CREATE TABLE Usuarios_Temp (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nombre TEXT NOT NULL,
+    Usuario TEXT NOT NULL UNIQUE,
+    Contrasena TEXT NOT NULL,
+    TipoId INTEGER NOT NULL,
+    FOREIGN KEY (TipoId) REFERENCES TiposUsuario(Id)
+);
+
+-- Insertar datos existentes, mapeando tipos actuales
+INSERT INTO TiposUsuario (Nombre, Descripcion) VALUES ('Admin', 'Usuario con permisos administrativos');
+INSERT INTO TiposUsuario (Nombre, Descripcion) VALUES ('Vendedor', 'Usuario para ventas y operaciones básicas');
+
+INSERT INTO Usuarios_Temp (Id, Nombre, Usuario, Contrasena, TipoId)
+SELECT u.Id, u.Nombre, u.Usuario, u.Contrasena,
+       CASE u.Tipo
+           WHEN 'Admin' THEN (SELECT Id FROM TiposUsuario WHERE Nombre = 'Admin')
+           WHEN 'Vendedor' THEN (SELECT Id FROM TiposUsuario WHERE Nombre = 'Vendedor')
+           ELSE (SELECT Id FROM TiposUsuario WHERE Nombre = 'Vendedor') -- Default
+       END
+FROM Usuarios u;
+
+SELECT *
+FROM Usuarios u;
+
+-- Eliminar la tabla original
+DROP TABLE Usuarios;
+
+-- Renombrar la tabla temporal
+ALTER TABLE Usuarios_Temp RENAME TO Usuarios;</sql><current_tab id="0"/></tab_sql></sqlb_project>

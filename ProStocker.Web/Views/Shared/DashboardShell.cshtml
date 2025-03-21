@@ -282,31 +282,51 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="~/lib/signalr/signalr.js"></script> <!-- Cliente de SignalR -->
     <script>
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/usuariosHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.start().then(() => {
+            console.log("Conectado a SignalR");
+        }).catch(err => console.error("Error al conectar a SignalR:", err));
+
+        // Escuchar notificaciones
+        connection.on("ReceiveNotification", (message, type) => {
+            showNotification(message, type);
+        });
+
+        // Escuchar actualización de la lista de usuarios
+        connection.on("RefreshUsuariosList", () => {
+            loadContent("/Usuarios/Index"); // Recarga la grilla
+        });
+
         // Función para mostrar notificaciones
-        function showNotification(message, type = 'info') {
-            const notificationArea = document.getElementById('notificationArea');
-            const alertClass = {
-                success: 'alert-success',
-                error: 'alert-danger',
-                warning: 'alert-warning',
-                info: 'alert-info'
-            }[type] || 'alert-info';
+         function showNotification(message, type = 'info') {
+             const notificationArea = document.getElementById('notificationArea');
+             const alertClass = {
+                 success: 'alert-success',
+                 error: 'alert-danger',
+                 warning: 'alert-warning',
+                 info: 'alert-info'
+             }[type] || 'alert-info';
 
-            const notification = document.createElement('div');
-            notification.className = `alert ${alertClass} alert-dismissible fade show`;
-            notification.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            notificationArea.appendChild(notification);
+             const notification = document.createElement('div');
+             notification.className = `alert ${alertClass} alert-dismissible fade show`;
+             notification.innerHTML = `
+                 ${message}
+                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+             `;
+             notificationArea.appendChild(notification);
 
-            // Auto-ocultar después de 5 segundos
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 150); // Espera la transición de fade
-            }, 5000);
-        }
+             setTimeout(() => {
+                 notification.classList.remove('show');
+                 setTimeout(() => notification.remove(), 150);
+             }, 5000);
+         }
 
         function loadContent(url, method = 'GET', data = null) {
              const options = {
@@ -324,15 +344,7 @@
                      const parser = new DOMParser();
                      const doc = parser.parseFromString(html, 'text/html');
                      const content = doc.querySelector('.content');
-                     if (content) {
-                         document.getElementById('contentArea').innerHTML = content.innerHTML;
-                         // Buscar notificaciones en la respuesta
-                         const notifications = doc.querySelectorAll('script[data-notification]');
-                         notifications.forEach(script => {
-                             const { message, type } = JSON.parse(script.dataset.notification);
-                             showNotification(message, type);
-                         });
-                     }
+                     if (content) document.getElementById('contentArea').innerHTML = content.innerHTML;
                  })
                  .catch(error => {
                      console.error('Error al cargar el contenido:', error);
@@ -341,38 +353,38 @@
          }
 
         function openModal(url, title, method = 'GET', data = null) {
-             const options = {
-                 method: method,
-                 credentials: 'include',
-                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
-             };
-             if (data) options.body = data;
-             fetch(url, options)
-                 .then(response => {
-                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                     return response.text();
-                 })
-                 .then(html => {
-                     document.getElementById('dynamicModalLabel').textContent = title;
-                     document.getElementById('modalBody').innerHTML = html;
-                     document.getElementById('modalFooter').innerHTML = `
-                         <button type="button" class="btn btn-neon" onclick="submitModalForm()">Guardar</button>
-                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                     `;
-                     const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
-                     modal.show();
-                 })
-                 .catch(error => {
-                     console.error('Error al cargar el modal:', error);
-                     showNotification(`Error al abrir el modal: ${error.message}`, 'error');
-                 });
-         }
+            const options = {
+                method: method,
+                credentials: 'include',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            };
+            if (data) options.body = data;
+            fetch(url, options)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('dynamicModalLabel').textContent = title;
+                    document.getElementById('modalBody').innerHTML = html;
+                    document.getElementById('modalFooter').innerHTML = `
+                        <button type="button" class="btn btn-neon" onclick="submitModalForm()">Guardar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    `;
+                    const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error al cargar el modal:', error);
+                    showNotification(`Error al abrir el modal: ${error.message}`, 'error');
+                });
+        }
 
-        function submitModalForm() {
+            function submitModalForm() {
             const form = document.getElementById('modalBody').querySelector('form');
             if (form) {
                 const formData = new FormData(form);
-                const url = form.action;
+                const url = form.action; // Debería ser algo como "/Usuarios/Edit/1"
                 const method = form.method || 'POST';
                 fetch(url, {
                     method: method,
@@ -393,12 +405,6 @@
                         if (content) {
                             document.getElementById('contentArea').innerHTML = content.innerHTML;
                             bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                            // Buscar notificaciones en la respuesta
-                            const notifications = doc.querySelectorAll('script[data-notification]');
-                            notifications.forEach(script => {
-                                const { message, type } = JSON.parse(script.dataset.notification);
-                                showNotification(message, type);
-                            });
                         } else {
                             showNotification('Error: No se pudo actualizar la vista.', 'error');
                         }
@@ -409,7 +415,6 @@
                     });
             }
         }
-
 
         function deleteUser(url) {
             fetch(url, {
@@ -428,12 +433,6 @@
                     if (content) {
                         document.getElementById('contentArea').innerHTML = content.innerHTML;
                         bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                        // Buscar notificaciones
-                        const notifications = doc.querySelectorAll('script[data-notification]');
-                        notifications.forEach(script => {
-                            const { message, type } = JSON.parse(script.dataset.notification);
-                            showNotification(message, type);
-                        });
                     }
                 })
                 .catch(error => {

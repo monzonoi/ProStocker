@@ -34,7 +34,7 @@ namespace ProStocker.Web.Controllers
                     {
                         new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                         new Claim(ClaimTypes.Name, usuario.Nombre),
-                        new Claim(ClaimTypes.Role, usuario.Tipo),
+                        //new Claim(ClaimTypes.Role, usuario.Tipo),
                         new Claim("UsuarioNombre", usuario.UsuarioNombre)
                     };
 

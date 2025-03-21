@@ -2,11 +2,17 @@ using System.Data.SQLite;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using ProStocker.Web.DAL;
+using ProStocker.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Agregar servicios MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR(); // Habilitar SignalR
+// Registrar DAL
+builder.Services.AddSingleton<DataAccess>();
+
+builder.Services.AddSingleton<UsuariosHub>();
 
 // Agregar soporte para sesiones
 builder.Services.AddDistributedMemoryCache();
@@ -26,8 +32,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
     });
 
-// Registrar DAL
-builder.Services.AddSingleton<DataAccess>();
+
 
 var app = builder.Build();
 
@@ -56,6 +61,13 @@ if (!File.Exists(dbPath))
             Estado TEXT CHECK(Estado IN ('Activa', 'Inactiva')) DEFAULT 'Activa',
             FOREIGN KEY (SucursalId) REFERENCES Sucursales(Id)
         );
+
+        CREATE TABLE TiposUsuario (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Nombre TEXT NOT NULL UNIQUE,
+            Descripcion TEXT
+        );
+
         CREATE TABLE Usuarios (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             Nombre TEXT NOT NULL,
@@ -214,5 +226,7 @@ app.UseSession();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<UsuariosHub>("/usuariosHub"); // Ruta para el Hub
 
 app.Run();
