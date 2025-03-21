@@ -1,6 +1,7 @@
 using System.Data.SQLite;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using ProStocker.DAL.Interfaces;
 using ProStocker.Web.DAL;
 using ProStocker.Web.Hubs;
 
@@ -8,37 +9,54 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Agregar servicios MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddSession(); // Agrega esto
 builder.Services.AddSignalR(); // Habilitar SignalR
 // Registrar DAL
 builder.Services.AddSingleton<DataAccess>();
 
 builder.Services.AddSingleton<UsuariosHub>();
 
+// Obtener la cadena de conexión con la clave correcta
+// Inicializar la base de datos SQLite
+string connectionString = builder.Configuration.GetConnectionString("SQLiteConnection");
+string dbPath = Path.Combine(Directory.GetCurrentDirectory(), "ProStocker.db");
+
+
+// Registrar la cadena de conexión como un singleton
+builder.Services.AddSingleton(connectionString);
+
+// Registrar las clases DAL como servicios (Scoped para que se creen por solicitud)
+builder.Services.AddScoped<ISucursalDAL, SucursalDAL>();
+builder.Services.AddScoped<ICajaDAL, CajaDAL>();
+builder.Services.AddScoped<ITurnoCajaDAL, TurnoCajaDAL>();
+builder.Services.AddScoped<IVentaDAL, VentaDAL>();
+builder.Services.AddScoped<IStockDAL, StockDAL>();
+
 // Agregar soporte para sesiones
 builder.Services.AddDistributedMemoryCache();
+// Configurar sesiones (opcional, si decides seguir usándola para otros fines)
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".ProStocker.Session";
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
-// Configurar autenticación con cookies
+// Configurar autenticación basada en cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.LoginPath = "/Dashboard/Login"; // Ruta a la página de login
+        options.LogoutPath = "/Dashboard/Logout"; // Ruta para cerrar sesión
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // Tiempo de expiración de la cookie
+        options.SlidingExpiration = true; // Renueva la cookie si el usuario está activo
     });
-
 
 
 var app = builder.Build();
 
-// Inicializar la base de datos SQLite
-string connectionString = builder.Configuration.GetConnectionString("SQLiteConnection");
-string dbPath = Path.Combine(Directory.GetCurrentDirectory(), "ProStocker.db");
 
 // Crear la base de datos y las tablas si no existen
 if (!File.Exists(dbPath))
@@ -58,6 +76,7 @@ if (!File.Exists(dbPath))
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             SucursalId INTEGER NOT NULL,
             Nombre TEXT NOT NULL,
+            Total REAL NOT NULL DEFAULT 0.0,
             Estado TEXT CHECK(Estado IN ('Activa', 'Inactiva')) DEFAULT 'Activa',
             FOREIGN KEY (SucursalId) REFERENCES Sucursales(Id)
         );
@@ -218,14 +237,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseSession(); // Agrega esto antes de UseRouting
 app.UseRouting();
 app.UseAuthentication(); // Añadir autenticación
 app.UseAuthorization();
-app.UseSession();
+
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=account}/{action=Login}/{id?}"); // Cambiar a Login como default
 
 app.MapHub<UsuariosHub>("/usuariosHub"); // Ruta para el Hub
 

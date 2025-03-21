@@ -24,9 +24,11 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Tipo</label>
-        <select name="Tipo" class="form-select">
-            <option value="Admin">Admin</option>
-            <option value="Vendedor" selected>Vendedor</option>
+        <select name="TipoId" class="form-select" required>
+            @foreach (var tipo in ViewBag.TiposUsuario as List<TipoUsuario>)
+            {
+                <option value="@tipo.Id">@tipo.Nombre</option>
+            }
         </select>
     </div>
     <div class="mb-3">

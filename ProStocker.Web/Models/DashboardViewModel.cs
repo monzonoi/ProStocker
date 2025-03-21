@@ -4,8 +4,10 @@
     {
         public List<Sucursal> Sucursales { get; set; }
         public Sucursal SucursalSeleccionada { get; set; }
-        public List<Caja> Cajas { get; set; }
-        public Caja CajaSeleccionada { get; set; }
+        public List<Caja> Cajas { get; set; } = new List<Caja>();
+        public List<Venta> Ventas { get; set; } = new List<Venta>();
+        public Caja CajaSeleccionada { get; set; } = new Caja();
+
         public TurnoCaja TurnoActivo { get; set; }
         public List<(Sucursal Sucursal, decimal TotalVentas, decimal TotalGanancia)> ReporteVentas { get; set; }
         public List<(Sucursal Sucursal, Articulo Articulo, decimal Stock, decimal StockMinimo)> ReporteStockMinimo { get; set; }

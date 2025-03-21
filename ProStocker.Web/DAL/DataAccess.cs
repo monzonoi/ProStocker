@@ -7,11 +7,56 @@ namespace ProStocker.Web.DAL
 {
     public class DataAccess
     {
-        private readonly string _connectionString;
+        readonly string _connectionString;
 
         public DataAccess(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("SQLiteConnection");
+        }
+
+
+        //public async Task<List<Caja>> LeerCajasAsync()
+        //{
+        //    var cajas = new List<Caja>();
+        //    using var conn = await GetOpenConnectionAsync();
+        //    var cmd = new SQLiteCommand("SELECT Id, Nombre, Total, Estado FROM Cajas", conn);
+        //    try
+        //    {
+        //        using var reader = await cmd.ExecuteReaderAsync();
+        //        while (await reader.ReadAsync())
+        //        {
+        //            cajas.Add(new Caja
+        //            {
+        //                Id = reader.GetInt32(0),
+        //                Nombre = reader.GetString(1),
+        //                Total = reader.GetDecimal(2),
+        //                Estado = reader.GetString(3)
+        //            });
+        //        }
+        //    }
+        //    catch (SQLiteException ex) 
+        //    {
+        //        return new List<Caja>(); // Devolver lista vacía si la tabla no está creada
+        //    }
+        //    return cajas;
+        //}
+
+        public async Task<List<TipoUsuario>> LeerTiposUsuarioAsync()
+        {
+            var tipos = new List<TipoUsuario>();
+            using var conn = await GetOpenConnectionAsync();
+            var cmd = new SQLiteCommand("SELECT Id, Nombre, Descripcion FROM TiposUsuario", conn);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                tipos.Add(new TipoUsuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.GetString(1),
+                    Descripcion = reader.IsDBNull(2) ? null : reader.GetString(2)
+                });
+            }
+            return tipos;
         }
 
         // Método auxiliar para abrir conexión asíncrona
@@ -174,28 +219,37 @@ namespace ProStocker.Web.DAL
             return null;
         }
 
-        // Leer tipos de usuario asíncrono
-        public async Task<List<TipoUsuario>> LeerTiposUsuarioAsync()
+        //// Leer tipos de usuario asíncrono
+        //public async Task<List<TipoUsuario>> LeerTiposUsuarioAsync()
+        //{
+        //    var tipos = new List<TipoUsuario>();
+        //    using var conn = await GetOpenConnectionAsync();
+        //    var cmd = new SQLiteCommand("SELECT Id, Nombre, Descripcion FROM TiposUsuario", conn);
+        //    using var reader = await cmd.ExecuteReaderAsync();
+        //    while (await reader.ReadAsync())
+        //    {
+        //        tipos.Add(new TipoUsuario
+        //        {
+        //            Id = reader.GetInt32(0),
+        //            Nombre = reader.GetString(1),
+        //            Descripcion = reader.IsDBNull(2) ? null : reader.GetString(2)
+        //        });
+        //    }
+        //    return tipos;
+        //}
+
+        // Método movido y hecho público
+        public async Task InicializarTiposUsuarioAsync()
         {
-            var tipos = new List<TipoUsuario>();
             using var conn = await GetOpenConnectionAsync();
-            var cmd = new SQLiteCommand("SELECT Id, Nombre, Descripcion FROM TiposUsuario", conn);
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                tipos.Add(new TipoUsuario
-                {
-                    Id = reader.GetInt32(0),
-                    Nombre = reader.GetString(1),
-                    Descripcion = reader.IsDBNull(2) ? null : reader.GetString(2)
-                });
-            }
-            return tipos;
+            var cmd = new SQLiteCommand(
+                "INSERT OR IGNORE INTO TiposUsuario (Nombre, Descripcion) VALUES " +
+                "('Admin', 'Usuario con permisos administrativos'), " +
+                "('Vendedor', 'Usuario para ventas')", conn);
+            await cmd.ExecuteNonQueryAsync();
         }
 
-      
 
-       
 
         // Obtener sucursales por usuario asíncrono
         private async Task<List<int>> GetSucursalesPorUsuarioAsync(int usuarioId)
@@ -248,7 +302,7 @@ namespace ProStocker.Web.DAL
             var model = new DashboardViewModel
             {
                 Sucursales = LeerSucursales(),
-                Cajas = LeerCajas(),
+                //Cajas = LeerCajas(),
                 ReporteVentas = ReporteVentasPorSucursal(fechaInicio, fechaFin),
                 ReporteStockMinimo = ReporteStockMinimo(),
                 FechaInicio = fechaInicio,
@@ -583,59 +637,59 @@ namespace ProStocker.Web.DAL
         }
 
         // CRUD para Cajas
-        public void CrearCaja(Caja caja)
-        {
-            using var conn = new SQLiteConnection(_connectionString);
-            conn.Open();
-            var cmd = new SQLiteCommand(
-                "INSERT INTO Cajas (SucursalId, Nombre, Estado) VALUES (@SucursalId, @Nombre, @Estado)", conn);
-            cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
-            cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
-            cmd.Parameters.AddWithValue("@Estado", caja.Estado);
-            cmd.ExecuteNonQuery();
-        }
+        //public void CrearCaja(Caja caja)
+        //{
+        //    using var conn = new SQLiteConnection(_connectionString);
+        //    conn.Open();
+        //    var cmd = new SQLiteCommand(
+        //        "INSERT INTO Cajas (SucursalId, Nombre, Estado) VALUES (@SucursalId, @Nombre, @Estado)", conn);
+        //    cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
+        //    cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
+        //    cmd.Parameters.AddWithValue("@Estado", caja.Estado);
+        //    cmd.ExecuteNonQuery();
+        //}
 
-        public List<Caja> LeerCajas()
-        {
-            var cajas = new List<Caja>();
-            using var conn = new SQLiteConnection(_connectionString);
-            conn.Open();
-            var cmd = new SQLiteCommand("SELECT Id, SucursalId, Nombre, Estado FROM Cajas", conn);
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                cajas.Add(new Caja
-                {
-                    Id = reader.GetInt32(0),
-                    SucursalId = reader.GetInt32(1),
-                    Nombre = reader.GetString(2),
-                    Estado = reader.GetString(3)
-                });
-            }
-            return cajas;
-        }
+        //public List<Caja> LeerCajas()
+        //{
+        //    var cajas = new List<Caja>();
+        //    using var conn = new SQLiteConnection(_connectionString);
+        //    conn.Open();
+        //    var cmd = new SQLiteCommand("SELECT Id, SucursalId, Nombre, Estado FROM Cajas", conn);
+        //    using var reader = cmd.ExecuteReader();
+        //    while (reader.Read())
+        //    {
+        //        cajas.Add(new Caja
+        //        {
+        //            Id = reader.GetInt32(0),
+        //            SucursalId = reader.GetInt32(1),
+        //            Nombre = reader.GetString(2),
+        //            Estado = reader.GetString(3)
+        //        });
+        //    }
+        //    return cajas;
+        //}
 
-        public void ActualizarCaja(Caja caja)
-        {
-            using var conn = new SQLiteConnection(_connectionString);
-            conn.Open();
-            var cmd = new SQLiteCommand(
-                "UPDATE Cajas SET SucursalId = @SucursalId, Nombre = @Nombre, Estado = @Estado WHERE Id = @Id", conn);
-            cmd.Parameters.AddWithValue("@Id", caja.Id);
-            cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
-            cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
-            cmd.Parameters.AddWithValue("@Estado", caja.Estado);
-            cmd.ExecuteNonQuery();
-        }
+        //public void ActualizarCaja(Caja caja)
+        //{
+        //    using var conn = new SQLiteConnection(_connectionString);
+        //    conn.Open();
+        //    var cmd = new SQLiteCommand(
+        //        "UPDATE Cajas SET SucursalId = @SucursalId, Nombre = @Nombre, Estado = @Estado WHERE Id = @Id", conn);
+        //    cmd.Parameters.AddWithValue("@Id", caja.Id);
+        //    cmd.Parameters.AddWithValue("@SucursalId", caja.SucursalId);
+        //    cmd.Parameters.AddWithValue("@Nombre", caja.Nombre);
+        //    cmd.Parameters.AddWithValue("@Estado", caja.Estado);
+        //    cmd.ExecuteNonQuery();
+        //}
 
-        public void EliminarCaja(int id)
-        {
-            using var conn = new SQLiteConnection(_connectionString);
-            conn.Open();
-            var cmd = new SQLiteCommand("DELETE FROM Cajas WHERE Id = @Id", conn);
-            cmd.Parameters.AddWithValue("@Id", id);
-            cmd.ExecuteNonQuery();
-        }
+        //public void EliminarCaja(int id)
+        //{
+        //    using var conn = new SQLiteConnection(_connectionString);
+        //    conn.Open();
+        //    var cmd = new SQLiteCommand("DELETE FROM Cajas WHERE Id = @Id", conn);
+        //    cmd.Parameters.AddWithValue("@Id", id);
+        //    cmd.ExecuteNonQuery();
+        //}
 
         // CRUD para TurnosCaja (ya tenemos Abrir y Cerrar, añadimos Leer y Actualizar)
         public List<TurnoCaja> LeerTurnosCaja()

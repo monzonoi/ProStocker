@@ -25,3 +25,31 @@
         </form>
     </div>
 </div>
+
+@* 
+                @model ProStocker.Web.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/DashboardShell.cshtml";
+}
+
+<div class="content">
+    <h1 class="mb-4" style="color: #54BAB9;">Iniciar Sesión</h1>
+    <div class="card p-3 shadow-lg">
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+        <form asp-action="Login" asp-controller="Dashboard" method="post">
+            <div class="mb-3">
+                <label class="form-label">Usuario</label>
+                <input type="text" name="usuarioNombre" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <input type="password" name="contrasena" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-neon">Iniciar Sesión</button>
+        </form>
+    </div>
+</div> *@

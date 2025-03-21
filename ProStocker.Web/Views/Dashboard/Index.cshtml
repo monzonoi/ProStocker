@@ -72,9 +72,21 @@
             <table class="table table-dark table-hover">
                 <thead><tr><th>Sucursal</th><th>Artículo</th><th>Stock Actual</th><th>Stock Mínimo</th></tr></thead>
                 <tbody id="stockTable">
-                    @foreach (var item in Model.ReporteStockMinimo)
+                    @if (Model.ReporteStockMinimo != null && Model.ReporteStockMinimo.Any())
                     {
-                        <tr><td>@item.Sucursal.Nombre</td><td>@item.Articulo.Descripcion</td><td class="@(item.Stock < item.StockMinimo ? "text-danger" : "text-warning")">@item.Stock</td><td>@item.StockMinimo</td></tr>
+                        foreach (var item in Model.ReporteStockMinimo)
+                        {
+                            <tr>
+                                <td>@(item.Sucursal?.Nombre ?? "Sin Sucursal")</td>
+                                <td>@(item.Articulo?.Descripcion ?? "Sin Artículo")</td>
+                                <td class="@(item.Stock < item.StockMinimo ? "text-danger" : "text-warning")">@item.Stock</td>
+                                <td>@item.StockMinimo</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="4" class="text-center">No hay artículos con stock mínimo.</td></tr>
                     }
                 </tbody>
             </table>
